@@ -1,10 +1,14 @@
 """Shared base for Custom infrared remote entities."""
 
-from homeassistant.components.infrared import InfraredEmitterConsumerEntity
+from homeassistant.components.infrared import (
+    InfraredCommand,
+    InfraredEmitterConsumerEntity,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_EMITTER, DOMAIN
+from .signal import async_mark_sent
 
 
 class LearnedRemoteEntity(InfraredEmitterConsumerEntity):
@@ -21,3 +25,9 @@ class LearnedRemoteEntity(InfraredEmitterConsumerEntity):
             name=entry.title,
             model="Custom infrared remote",
         )
+
+    async def _send_command(self, command: InfraredCommand) -> None:
+        """Send, and tell listeners to ignore the echo."""
+        async_mark_sent(self.hass, self._infrared_emitter_entity_id)
+        await super()._send_command(command)
+        async_mark_sent(self.hass, self._infrared_emitter_entity_id)

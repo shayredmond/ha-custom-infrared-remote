@@ -135,7 +135,7 @@ async def test_full_flow(
     assert commands[1]["modulation"] == 40000
     await hass.async_block_till_done()
 
-    # One device, one remote entity and one button per command on it
+    # One device: a remote entity, an event entity and one button per command
     entry = result["result"]
     devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
     assert len(devices) == 1
@@ -143,6 +143,7 @@ async def test_full_flow(
     assert sorted(e.entity_id for e in entities) == [
         "button.living_room_tv_power",
         "button.living_room_tv_volume_up",
+        "event.living_room_tv_remote_button",
         "remote.living_room_tv",
     ]
 

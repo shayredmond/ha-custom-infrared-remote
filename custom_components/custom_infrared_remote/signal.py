@@ -1,6 +1,7 @@
 """Helpers to describe, clean up and compare learned IR signals."""
 
 import asyncio
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -17,9 +18,13 @@ from .const import (
     CMD_NAME,
     CMD_TIMINGS,
     DEFAULT_MODULATION,
+    DOMAIN,
+    ECHO_WINDOW,
     LEARN_TIMEOUT,
     MIN_TIMINGS,
 )
+
+DATA_LAST_SENT = f"{DOMAIN}_last_sent"
 
 # One NEC frame: leader pair + 32 bit pairs + end pulse
 NEC_FRAME_LENGTH = 67
@@ -102,28 +107,74 @@ class LearnedSignal:
         return " · ".join(parts)
 
 
-def signals_match(a: list[int], b: list[int]) -> bool:
-    """Return True if two timing lists are very likely the same button."""
+def signal_distance(a: list[int], b: list[int]) -> float | None:
+    """Return how far apart two signals are, or None if they don't match.
+
+    0 is identical. NEC codes compare by address and command, so they are
+    either 0 or None. Raw codes compare timing by timing and return the mean
+    relative difference.
+    """
     nec_a = NECCommand.from_raw_timings(a)
     nec_b = NECCommand.from_raw_timings(b)
     if nec_a and nec_b:
-        return (nec_a.address, nec_a.command) == (nec_b.address, nec_b.command)
+        same = (nec_a.address, nec_a.command) == (nec_b.address, nec_b.command)
+        return 0.0 if same else None
     if abs(len(a) - len(b)) > 2:
-        return False
+        return None
+    total = 0.0
+    pairs = 0
     for x, y in zip(a, b, strict=False):
         if (x > 0) != (y > 0):
-            return False
-        if abs(abs(x) - abs(y)) > max(200, 0.25 * abs(x)):
-            return False
-    return True
+            return None
+        diff = abs(abs(x) - abs(y))
+        if diff > max(200, 0.25 * abs(x)):
+            return None
+        total += diff / max(abs(x), 1)
+        pairs += 1
+    return total / pairs if pairs else None
+
+
+def signals_match(a: list[int], b: list[int]) -> bool:
+    """Return True if two timing lists are very likely the same button."""
+    return signal_distance(a, b) is not None
+
+
+def find_best_match(
+    timings: list[int], commands: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Return the stored command closest to the timings, or None."""
+    best: dict[str, Any] | None = None
+    best_distance = float("inf")
+    for command in commands:
+        distance = signal_distance(timings, command[CMD_TIMINGS])
+        if distance is not None and distance < best_distance:
+            best, best_distance = command, distance
+    return best
 
 
 def find_duplicate(signal: LearnedSignal, commands: list[dict[str, Any]]) -> str | None:
     """Return the name of a stored command that matches the signal."""
-    for command in commands:
-        if signals_match(signal.timings, command[CMD_TIMINGS]):
-            return command[CMD_NAME]
+    if match := find_best_match(signal.timings, commands):
+        return match[CMD_NAME]
     return None
+
+
+def now() -> float:
+    """Monotonic clock, patched in tests."""
+    return time.monotonic()
+
+
+@callback
+def async_mark_sent(hass: HomeAssistant, emitter_entity_id: str) -> None:
+    """Remember that something was just sent through this emitter."""
+    hass.data.setdefault(DATA_LAST_SENT, {})[emitter_entity_id] = now()
+
+
+@callback
+def async_recently_sent(hass: HomeAssistant, emitter_entity_id: str) -> bool:
+    """Return True if this emitter sent something within the echo window."""
+    sent = hass.data.get(DATA_LAST_SENT, {}).get(emitter_entity_id)
+    return sent is not None and now() - sent < ECHO_WINDOW
 
 
 async def async_learn_signal(

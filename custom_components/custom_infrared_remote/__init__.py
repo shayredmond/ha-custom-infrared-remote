@@ -6,8 +6,9 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
 from .const import CMD_ID, CONF_COMMANDS
+from .event import listens
 
-PLATFORMS: list[Platform] = [Platform.REMOTE, Platform.BUTTON]
+PLATFORMS: list[Platform] = [Platform.REMOTE, Platform.BUTTON, Platform.EVENT]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -35,6 +36,8 @@ def _async_remove_deleted_buttons(hass: HomeAssistant, entry: ConfigEntry) -> No
         f"{entry.entry_id}_{command[CMD_ID]}"
         for command in entry.options.get(CONF_COMMANDS, [])
     }
+    if listens(entry):
+        keep.add(f"{entry.entry_id}_event")
     ent_reg = er.async_get(hass)
     for entity in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
         if entity.unique_id not in keep:

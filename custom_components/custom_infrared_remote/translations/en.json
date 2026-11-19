@@ -59,7 +59,7 @@
           "relearn": "Learn a button again",
           "rename": "Rename buttons",
           "delete": "Delete buttons",
-          "settings": "Change emitter or receiver"
+          "settings": "Change emitter, receiver or listening"
         }
       },
       "command_name": {
@@ -101,10 +101,14 @@
         }
       },
       "settings": {
-        "title": "Emitter and receiver",
+        "title": "Emitter, receiver and listening",
         "data": {
           "emitter_entity_id": "Infrared emitter",
-          "receiver_entity_id": "Infrared receiver"
+          "receiver_entity_id": "Infrared receiver",
+          "listen": "Listen for button presses"
+        },
+        "data_description": {
+          "listen": "Fires an event when the receiver hears one of the learned buttons from the original remote. Use it to trigger automations."
         }
       }
     },
@@ -129,6 +133,18 @@
     },
     "on_off_not_supported": {
       "message": "This remote can't turn the device on or off. Press one of its buttons instead, or use remote.send_command."
+    }
+  },
+  "entity": {
+    "event": {
+      "button_pressed": {
+        "name": "Remote button",
+        "state_attributes": {
+          "event_type": {
+            "name": "Button"
+          }
+        }
+      }
     }
   }
 }

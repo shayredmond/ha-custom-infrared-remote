@@ -28,6 +28,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     SelectOptionDict,
@@ -44,10 +45,17 @@ from .const import (
     CMD_TIMINGS,
     CONF_COMMANDS,
     CONF_EMITTER,
+    CONF_LISTEN,
     CONF_RECEIVER,
     DOMAIN,
 )
-from .signal import LearnedCommand, LearnedSignal, async_learn_signal, find_duplicate
+from .signal import (
+    LearnedCommand,
+    LearnedSignal,
+    async_learn_signal,
+    async_mark_sent,
+    find_duplicate,
+)
 
 CONF_COMMAND = "command"
 
@@ -231,6 +239,7 @@ class LearnLoopMixin:
     ) -> FlowResult:
         """Send the captured signal once through the emitter."""
         assert self._signal is not None
+        async_mark_sent(self.hass, self._emitter)
         try:
             await async_send_command(
                 self.hass,
@@ -239,6 +248,7 @@ class LearnLoopMixin:
             )
         except HomeAssistantError:
             return self._async_show_review(note="send_failed")
+        async_mark_sent(self.hass, self._emitter)
         return self._async_show_review(note="sent")
 
     async def async_step_retry(
@@ -474,12 +484,13 @@ class LearnedRemoteOptionsFlow(LearnLoopMixin, OptionsFlow):
             {
                 probatio.Required(CONF_EMITTER): _emitter_selector(self.hass),
                 probatio.Required(CONF_RECEIVER): _receiver_selector(self.hass),
+                probatio.Required(CONF_LISTEN): BooleanSelector(),
             }
         )
         return self.async_show_form(
             step_id="settings",
             data_schema=self.add_suggested_values_to_schema(
-                schema, dict(self.config_entry.data)
+                schema, {CONF_LISTEN: True, **self.config_entry.data}
             ),
         )
 

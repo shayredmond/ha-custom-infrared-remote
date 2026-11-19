@@ -71,6 +71,29 @@ data:
 
 `remote.learn_command` and `remote.delete_command` also work. The names of all learned buttons are listed in the `commands` attribute of the remote entity.
 
+### React to the original remote
+
+While listening is on, the receiver keeps listening after setup. When it hears one of the learned buttons from your original remote, the **Remote button** event entity fires with the button name. Use it to trigger automations, for example to dim the lights when you press Power on the TV remote:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: event.living_room_tv_remote_button
+conditions:
+  - condition: state
+    entity_id: event.living_room_tv_remote_button
+    attribute: event_type
+    state: Power
+actions:
+  - action: light.turn_off
+    target:
+      area_id: living_room
+```
+
+- Holding a button fires one event, not one per repeat.
+- Commands that Home Assistant sends through the same emitter are ignored for half a second, so the receiver hearing its own emitter does not count as a press.
+- To turn listening off, open the remote's **Configure** menu and select **Change emitter, receiver or listening**.
+
 ## How it works
 
 The receiver records the signal as a list of pulse and pause durations. The integration stores this list and sends it again through the emitter.
@@ -89,6 +112,7 @@ Most receivers do not report the carrier frequency. In that case, the integratio
 - The remote entity can't turn the device on or off, because infrared only goes one way. Learn Power on and Power off as buttons instead.
 - Only NEC codes are recognized. Other codes are stored and sent as recorded.
 - If your remote changes its code on every press, a learned button may only work every other time.
+- Listening uses the same matching as learning, so two learned buttons that send the same code both fire.
 
 ## Feedback
 
