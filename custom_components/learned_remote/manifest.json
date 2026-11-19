@@ -1,6 +1,6 @@
 {
   "domain": "learned_remote",
-  "name": "Learned IR remote",
+  "name": "Custom infrared remote",
   "codeowners": [
     "@shayredmond"
   ],

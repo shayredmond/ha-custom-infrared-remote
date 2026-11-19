@@ -1,4 +1,4 @@
-# Learned IR remote
+# Custom infrared remote
 
 [![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=shayredmond&repository=ha-custom-infrared-remote&category=integration)
 
@@ -19,7 +19,7 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 ### Marketplace
 
 1. Select the badge above, or in the Marketplace add `https://github.com/shayredmond/ha-custom-infrared-remote` as a custom repository of the type **Integration**.
-2. Download **Learned IR remote**.
+2. Download **Custom infrared remote**.
 3. Restart Home Assistant.
 
 ### Manual
@@ -32,7 +32,7 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 ### Create a remote
 
 1. Go to **Settings** > **Devices & services** and select **Add integration**.
-2. Select **Learned IR remote**.
+2. Select **Custom infrared remote**.
 3. Enter the name of the device you control, for example, Living room TV.
 4. Select the infrared emitter and the infrared receiver.
 

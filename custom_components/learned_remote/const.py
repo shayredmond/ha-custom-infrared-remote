@@ -1,4 +1,4 @@
-"""Constants for the Learned IR remote integration."""
+"""Constants for the Custom infrared remote integration."""
 
 from typing import Final
 

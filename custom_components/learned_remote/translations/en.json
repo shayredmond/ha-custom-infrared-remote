@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Create a learned IR remote",
-        "description": "A learned remote is one device with a button for each command you teach it.",
+        "title": "Create a custom infrared remote",
+        "description": "A custom infrared remote is one device with a button for each command you teach it.",
         "data": {
           "name": "Name",
           "emitter_entity_id": "Infrared emitter",

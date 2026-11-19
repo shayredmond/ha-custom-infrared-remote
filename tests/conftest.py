@@ -1,4 +1,4 @@
-"""Fixtures for the Learned IR remote tests."""
+"""Fixtures for the Custom infrared remote tests."""
 
 import pytest
 from infrared_protocols.commands.nec import NECCommand

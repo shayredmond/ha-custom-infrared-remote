@@ -1,4 +1,4 @@
-"""Config and options flows for the Learned IR remote integration.
+"""Config and options flows for the Custom infrared remote integration.
 
 One config entry is one remote. Commands live in the entry options, so the
 options flow is where they are learned, re-learned, renamed and deleted.

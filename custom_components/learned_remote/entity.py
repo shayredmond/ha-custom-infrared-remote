@@ -1,4 +1,4 @@
-"""Shared base for Learned IR remote entities."""
+"""Shared base for Custom infrared remote entities."""
 
 from homeassistant.components.infrared import InfraredEmitterConsumerEntity
 from homeassistant.config_entries import ConfigEntry
@@ -19,5 +19,5 @@ class LearnedRemoteEntity(InfraredEmitterConsumerEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
-            model="Learned IR remote",
+            model="Custom infrared remote",
         )

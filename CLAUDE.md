@@ -1,6 +1,6 @@
-# Learned IR remote
+# Custom infrared remote
 
-Home Assistant custom integration (domain `learned_remote`) that learns IR commands from a physical remote and replays them. It is shared through the Marketplace (formerly HACS) for testing. It builds on the core `infrared` platform (HA 2026.11+): it consumes emitter and receiver entities and never talks to hardware itself.
+Home Assistant custom integration "Custom infrared remote" (domain `learned_remote`, kept from its first name "Learned IR remote" so existing installs keep working) that learns IR commands from a physical remote and replays them. It is shared through the Marketplace (formerly HACS) for testing. It builds on the core `infrared` platform (HA 2026.11+): it consumes emitter and receiver entities and never talks to hardware itself.
 
 ## Layout
 

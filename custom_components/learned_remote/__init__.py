@@ -1,4 +1,4 @@
-"""The Learned IR remote integration."""
+"""The Custom infrared remote integration."""
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
