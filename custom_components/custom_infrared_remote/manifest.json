@@ -1,6 +1,9 @@
 {
   "domain": "custom_infrared_remote",
   "name": "Custom infrared remote",
+  "categories": [
+    "buttons_remotes"
+  ],
   "codeowners": [
     "@shayredmond"
   ],
