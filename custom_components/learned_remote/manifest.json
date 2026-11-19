@@ -1,0 +1,17 @@
+{
+  "domain": "learned_remote",
+  "name": "Learned IR remote",
+  "codeowners": [
+    "@shayredmond"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "infrared"
+  ],
+  "documentation": "https://github.com/shayredmond/learned-ir-remote",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/shayredmond/learned-ir-remote/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

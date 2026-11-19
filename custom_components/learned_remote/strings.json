@@ -1,0 +1,131 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Create a learned IR remote",
+        "description": "A learned remote is one device with a button for each command you teach it.",
+        "data": {
+          "name": "Name",
+          "emitter_entity_id": "Infrared emitter",
+          "receiver_entity_id": "Infrared receiver"
+        },
+        "data_description": {
+          "name": "The device you control, for example, Living room TV.",
+          "emitter_entity_id": "Sends the commands to the device.",
+          "receiver_entity_id": "Hears your remote while you teach it buttons."
+        }
+      },
+      "command_name": {
+        "title": "Learn a button",
+        "description": "Which button on the remote do you want to learn next? After you select **Next**, you have 30 seconds to press it.\n\nLearned so far: {learned}.\n\nLeave the name empty and select **Next** when you are done.",
+        "data": {
+          "name": "Button name"
+        },
+        "data_description": {
+          "name": "For example, Power, Volume up or HDMI 1."
+        }
+      },
+      "review": {
+        "title": "Check the button",
+        "description": "**{name}**\n\n{summary}\n\n{notes}",
+        "menu_options": {
+          "test": "Send it now to test",
+          "save_next": "Save and learn the next button",
+          "save_finish": "Save and finish",
+          "retry": "Learn it again"
+        }
+      }
+    },
+    "progress": {
+      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds."
+    },
+    "error": {
+      "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
+      "name_exists": "This remote already has a button with this name.",
+      "name_empty": "Each button needs a name."
+    },
+    "abort": {
+      "no_emitters": "No infrared emitter found. Add a device that can send infrared first.",
+      "no_receivers": "No infrared receiver found. Add a device that can receive infrared first."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage buttons",
+        "description": "**{remote}** has {count} buttons: {learned}.",
+        "menu_options": {
+          "learn_more": "Learn new buttons",
+          "relearn": "Learn a button again",
+          "rename": "Rename buttons",
+          "delete": "Delete buttons",
+          "settings": "Change emitter or receiver"
+        }
+      },
+      "command_name": {
+        "title": "Learn a button",
+        "description": "Which button on the remote do you want to learn next? After you select **Next**, you have 30 seconds to press it.\n\nLearned so far: {learned}.\n\nLeave the name empty and select **Next** when you are done.",
+        "data": {
+          "name": "Button name"
+        },
+        "data_description": {
+          "name": "For example, Power, Volume up or HDMI 1."
+        }
+      },
+      "review": {
+        "title": "Check the button",
+        "description": "**{name}**\n\n{summary}\n\n{notes}",
+        "menu_options": {
+          "test": "Send it now to test",
+          "save_next": "Save and learn the next button",
+          "save_finish": "Save and finish",
+          "retry": "Learn it again"
+        }
+      },
+      "relearn": {
+        "title": "Learn a button again",
+        "description": "The button keeps its name and entity. Only the signal is replaced.",
+        "data": {
+          "command": "Button"
+        }
+      },
+      "rename": {
+        "title": "Rename buttons",
+        "description": "Entity IDs stay the same, so automations keep working."
+      },
+      "delete": {
+        "title": "Delete buttons",
+        "description": "The buttons and their entities are removed.",
+        "data": {
+          "commands": "Buttons to delete"
+        }
+      },
+      "settings": {
+        "title": "Emitter and receiver",
+        "data": {
+          "emitter_entity_id": "Infrared emitter",
+          "receiver_entity_id": "Infrared receiver"
+        }
+      }
+    },
+    "progress": {
+      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds."
+    },
+    "error": {
+      "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
+      "name_exists": "This remote already has a button with this name.",
+      "name_empty": "Each button needs a name."
+    }
+  },
+  "exceptions": {
+    "unknown_command": {
+      "message": "This remote has no button called {command}. Its buttons are: {commands}."
+    },
+    "no_command_name": {
+      "message": "Give the name of the button to learn."
+    },
+    "no_signal": {
+      "message": "Nothing was received for {command}."
+    }
+  }
+}

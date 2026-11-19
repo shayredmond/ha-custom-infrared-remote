@@ -1,0 +1,4 @@
+homeassistant==2026.11.2
+pytest-homeassistant==2026.11.2
+infrared-protocols==10.5.0
+ruff
