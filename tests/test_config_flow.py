@@ -22,7 +22,7 @@ from pytest_homeassistant.components.infrared.common import (
     MockInfraredReceiverEntity,
 )
 
-from custom_components.learned_remote.const import (
+from custom_components.custom_infrared_remote.const import (
     CONF_EMITTER,
     CONF_RECEIVER,
     DOMAIN,

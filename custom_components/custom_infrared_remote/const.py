@@ -2,7 +2,7 @@
 
 from typing import Final
 
-DOMAIN: Final = "learned_remote"
+DOMAIN: Final = "custom_infrared_remote"
 
 CONF_EMITTER: Final = "emitter_entity_id"
 CONF_RECEIVER: Final = "receiver_entity_id"

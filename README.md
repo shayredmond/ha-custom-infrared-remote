@@ -24,7 +24,7 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 
 ### Manual
 
-1. Copy `custom_components/learned_remote` into the `custom_components` folder of your Home Assistant configuration.
+1. Copy `custom_components/custom_infrared_remote` into the `custom_components` folder of your Home Assistant configuration.
 2. Restart Home Assistant.
 
 ## Use

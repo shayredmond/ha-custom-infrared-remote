@@ -8,7 +8,7 @@ from pytest_homeassistant.components.infrared import (
     RECEIVER_ENTITY_ID,
 )
 
-from custom_components.learned_remote.const import (
+from custom_components.custom_infrared_remote.const import (
     CONF_COMMANDS,
     CONF_EMITTER,
     CONF_RECEIVER,

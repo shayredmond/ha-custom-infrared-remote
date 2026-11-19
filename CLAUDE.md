@@ -1,10 +1,10 @@
 # Custom infrared remote
 
-Home Assistant custom integration "Custom infrared remote" (domain `learned_remote`, kept from its first name "Learned IR remote" so existing installs keep working) that learns IR commands from a physical remote and replays them. It is shared through the Marketplace (formerly HACS) for testing. It builds on the core `infrared` platform (HA 2026.11+): it consumes emitter and receiver entities and never talks to hardware itself.
+Home Assistant custom integration "Custom infrared remote" (domain `custom_infrared_remote`; first prototyped as "Learned IR remote" with domain `learned_remote`) that learns IR commands from a physical remote and replays them. It is shared through the Marketplace (formerly HACS) for testing. It builds on the core `infrared` platform (HA 2026.11+): it consumes emitter and receiver entities and never talks to hardware itself.
 
 ## Layout
 
-- `custom_components/learned_remote/`
+- `custom_components/custom_infrared_remote/`
   - `config_flow.py`: `LearnLoopMixin` holds the learn loop (command_name -> learn progress -> learn_done -> review menu), shared by the config flow (create remote) and the options flow (manage: learn_more, relearn, rename, delete, settings).
   - `signal.py`: `LearnedSignal` (noise filter, NEC decode, held-repeat trim, summary), `signals_match` and `find_duplicate`, `async_learn_signal`, `LearnedCommand`.
   - `remote.py`: remote entity with send, learn and delete commands by name.
