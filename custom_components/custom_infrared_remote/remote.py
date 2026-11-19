@@ -52,6 +52,9 @@ class LearnedRemote(LearnedRemoteEntity, RemoteEntity):
     # IR is one-way, so the remote cannot know if the device is on
     _attr_is_on = None
     _attr_assumed_state = True
+    # Hidden by default: its on/off controls mean nothing for a learned remote.
+    # The buttons are the controls; the remote is for send_command in automations.
+    _attr_entity_registry_visible_default = False
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the remote."""
@@ -78,6 +81,18 @@ class LearnedRemote(LearnedRemoteEntity, RemoteEntity):
                 "command": name,
                 "commands": ", ".join(c[CMD_NAME] for c in self._commands),
             },
+        )
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Explain that on and off are not supported."""
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="on_off_not_supported"
+        )
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Explain that on and off are not supported."""
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="on_off_not_supported"
         )
 
     async def async_send_command(self, command: Iterable[str], **kwargs: Any) -> None:

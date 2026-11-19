@@ -55,7 +55,7 @@ Open the remote on the integration page and select **Configure**. From there you
 
 ### Use in automations
 
-Press a button entity, or send commands by name with the remote entity:
+Press a button entity, or send commands by name with the remote entity. The remote entity is hidden by default, because the buttons are the controls. It still works in automations, and you can show it in its entity settings.
 
 ```yaml
 action: remote.send_command
@@ -86,7 +86,7 @@ Most receivers do not report the carrier frequency. In that case, the integratio
 
 ## Known limitations
 
-- The remote entity has no on or off state, because infrared only goes one way.
+- The remote entity can't turn the device on or off, because infrared only goes one way. Learn Power on and Power off as buttons instead.
 - Only NEC codes are recognized. Other codes are stored and sent as recorded.
 - If your remote changes its code on every press, a learned button may only work every other time.
 

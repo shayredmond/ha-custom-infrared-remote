@@ -35,11 +35,29 @@ async def setup(
     return mock_config_entry
 
 
-async def test_entities(hass: HomeAssistant, setup: MockConfigEntry) -> None:
-    """The remote lists its buttons."""
+async def test_entities(
+    hass: HomeAssistant, setup: MockConfigEntry, entity_registry: er.EntityRegistry
+) -> None:
+    """The remote lists its buttons and is hidden by default."""
     state = hass.states.get(REMOTE)
     assert state.attributes["commands"] == ["Power", "Volume up"]
     assert hass.states.get("button.living_room_tv_power")
+    assert (
+        entity_registry.async_get(REMOTE).hidden_by is er.RegistryEntryHider.INTEGRATION
+    )
+    assert not entity_registry.async_get("button.living_room_tv_power").hidden_by
+
+
+@pytest.mark.parametrize("service", ["turn_on", "turn_off"])
+async def test_on_off_not_supported(
+    hass: HomeAssistant, setup: MockConfigEntry, service: str
+) -> None:
+    """On and off give a clear error instead of failing."""
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            REMOTE_DOMAIN, service, {ATTR_ENTITY_ID: REMOTE}, blocking=True
+        )
+    assert err.value.translation_key == "on_off_not_supported"
 
 
 async def test_button_press(

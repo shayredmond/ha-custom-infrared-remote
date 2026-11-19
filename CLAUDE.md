@@ -32,6 +32,6 @@ All user-facing strings follow `~/src/NabuCasa/WRITING_STYLE.md`: no em dashes, 
 
 ## Open questions
 
-- Remote on/off state (currently unknown and assumed).
+- Remote on/off: decided 2026-11-19 to hide the remote entity by default and reject turn_on/turn_off with a clear error. Mapping on/off to learned Power buttons was considered and not done.
 - Generic pulse-distance decoder for non-NEC remotes (Shay's test remote sends 21-bit codes with a ~2.2 ms leader).
 - Carrier is assumed to be 38 kHz when the receiver doesn't report it.
