@@ -1,6 +1,6 @@
 # Learned IR remote
 
-[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=shayredmond&repository=learned-ir-remote&category=integration)
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=shayredmond&repository=ha-custom-infrared-remote&category=integration)
 
 Teach Home Assistant the buttons of any infrared remote. Each remote becomes one device, with a button entity for every command and a remote entity you can use in automations.
 
@@ -18,7 +18,7 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 
 ### Marketplace
 
-1. Select the badge above, or in the Marketplace add `https://github.com/shayredmond/learned-ir-remote` as a custom repository of the type **Integration**.
+1. Select the badge above, or in the Marketplace add `https://github.com/shayredmond/ha-custom-infrared-remote` as a custom repository of the type **Integration**.
 2. Download **Learned IR remote**.
 3. Restart Home Assistant.
 
@@ -91,7 +91,7 @@ Most receivers do not report the carrier frequency. In that case, the integratio
 
 ## Feedback
 
-Report problems and ideas in [issues](https://github.com/shayredmond/learned-ir-remote/issues). Please include the remote and the infrared device you use.
+Report problems and ideas in [issues](https://github.com/shayredmond/ha-custom-infrared-remote/issues). Please include the remote and the infrared device you use.
 
 ## Development
 

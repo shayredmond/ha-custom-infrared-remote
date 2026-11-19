@@ -8,10 +8,10 @@
   "dependencies": [
     "infrared"
   ],
-  "documentation": "https://github.com/shayredmond/learned-ir-remote",
+  "documentation": "https://github.com/shayredmond/ha-custom-infrared-remote",
   "integration_type": "device",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/shayredmond/learned-ir-remote/issues",
+  "issue_tracker": "https://github.com/shayredmond/ha-custom-infrared-remote/issues",
   "requirements": [],
   "version": "0.1.0"
 }
