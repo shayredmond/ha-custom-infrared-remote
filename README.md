@@ -4,7 +4,8 @@
 
 Teach Home Assistant the buttons of any infrared remote. Each remote becomes one device, with a button entity for every command and a remote entity you can use in automations.
 
-This integration is being tested. Expect changes, and please report what you find.
+> [!WARNING]
+> This is an example integration for testing purposes. It is not production ready: expect breaking changes, and don't rely on it for anything important. Please report what you find.
 
 ## Requirements
 
