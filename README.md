@@ -1,6 +1,6 @@
 # Custom infrared remote
 
-[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=shayredmond&repository=ha-custom-infrared-remote&category=integration)
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=shayredmond&repository=ha-custom-infrared-remote&category=integration)
 
 Teach Home Assistant the buttons of any infrared remote. Each remote becomes one device, with a button entity for every command and an event entity that fires when you use the original remote.
 
@@ -19,7 +19,11 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 
 ### Marketplace
 
-1. Select the badge above, or in the Marketplace add `https://github.com/shayredmond/ha-custom-infrared-remote` as a custom repository of the type **Integration**.
+1. Open the repository in your Marketplace:
+
+   [![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=shayredmond&repository=ha-custom-infrared-remote&category=integration)
+
+   Or in the Marketplace, add `https://github.com/shayredmond/ha-custom-infrared-remote` as a custom repository of the type **Integration**.
 2. Download **Custom infrared remote**.
 3. Restart Home Assistant.
 
