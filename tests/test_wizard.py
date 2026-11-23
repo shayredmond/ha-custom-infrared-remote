@@ -81,9 +81,7 @@ async def _start_tv(hass: HomeAssistant, buttons: list[str]):
         "playback",
         "navigation",
     ]
-    defaults = {
-        str(k): next(iter(v.schema.schema)).default() for k, v in sections.items()
-    }
+    defaults = {str(k): k.default()["buttons"] for k, v in sections.items()}
     assert defaults["power"] == ["power"]
     assert defaults["volume"] == ["volume_up", "volume_down", "mute"]
     assert defaults["navigation"] == []
@@ -434,10 +432,11 @@ async def test_options_learn_more_suggests_missing(
     )
     assert result["step_id"] == "buttons"
     sections = {str(k): v for k, v in result["data_schema"].schema.items()}
-    power_key, power_selector = next(iter(sections["power"].schema.schema.items()))
+    _, power_selector = next(iter(sections["power"].schema.schema.items()))
     values = [o["value"] for o in power_selector.config["options"]]
     assert values == ["power_on", "power_off"]
-    assert power_key.default() == ["power_on"]
+    power_key = next(k for k in result["data_schema"].schema if str(k) == "power")
+    assert power_key.default() == {"buttons": ["power_on"]}
 
     # Untick Mute, tick Menu: Mute becomes hidden, Menu doesn't any more
     template = get_template("tv")

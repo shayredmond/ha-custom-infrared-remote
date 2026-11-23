@@ -118,27 +118,31 @@ class GuidedCaptureMixin:
         schema: dict[Any, Any] = {}
         for group, keys in groups.items():
             defaults = [k for k in keys if k not in hidden]
-            schema[probatio.Optional(group, default={})] = section(
-                probatio.Schema(
-                    {
-                        probatio.Optional(CONF_BUTTONS, default=defaults): (
-                            SelectSelector(
-                                SelectSelectorConfig(
-                                    options=[
-                                        SelectOptionDict(
-                                            value=k,
-                                            label=template.role(k).name,  # type: ignore[union-attr]
-                                        )
-                                        for k in keys
-                                    ],
-                                    multiple=True,
-                                    mode=SelectSelectorMode.LIST,
+            # The frontend takes a section's initial values from the
+            # section's own default, not from the fields inside it
+            schema[probatio.Optional(group, default={CONF_BUTTONS: defaults})] = (
+                section(
+                    probatio.Schema(
+                        {
+                            probatio.Optional(CONF_BUTTONS, default=[]): (
+                                SelectSelector(
+                                    SelectSelectorConfig(
+                                        options=[
+                                            SelectOptionDict(
+                                                value=k,
+                                                label=template.role(k).name,  # type: ignore[union-attr]
+                                            )
+                                            for k in keys
+                                        ],
+                                        multiple=True,
+                                        mode=SelectSelectorMode.LIST,
+                                    )
                                 )
                             )
-                        )
-                    }
-                ),
-                {"collapsed": not defaults and len(groups) > 1},
+                        }
+                    ),
+                    {"collapsed": not defaults and len(groups) > 1},
+                )
             )
         return self.async_show_form(
             step_id="buttons",
