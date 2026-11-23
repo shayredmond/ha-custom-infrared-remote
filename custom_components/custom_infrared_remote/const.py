@@ -32,3 +32,12 @@ ECHO_WINDOW: Final = 0.5
 
 # Presses of the same button closer together than this count as one (held button)
 REPEAT_WINDOW: Final = 0.3
+
+# Which device type the wizard set up (see templates.py); missing means generic
+CONF_DEVICE_TYPE: Final = "device_type"
+
+# Optional key on a stored command: the wizard role it fills, such as "power"
+CMD_ROLE: Final = "role"
+
+# How long the guided capture waits for each button before asking what to do
+CAPTURE_TIMEOUT: Final = 20

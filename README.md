@@ -38,18 +38,24 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 
 1. Go to **Settings** > **Devices & services** and select **Add integration**.
 2. Select **Custom infrared remote**.
-3. Enter the name of the device you control, for example, Living room TV.
-4. Select the infrared emitter and the infrared receiver.
+3. Pick what the remote controls: **TV**, **Projector**, **Speakers or AV receiver**, **Fan**, **Blinds or curtains**, **Projector screen** or **Something else**.
+4. Enter a name, for example, Living room TV, and select the infrared emitter and the infrared receiver.
 
 ### Learn buttons
 
+For every type except **Something else**:
+
+1. Tick the buttons your remote has. The most common ones are already ticked.
+2. Press them on your remote when asked, one after another. As soon as a button is received, the next one comes up. If nothing arrives within 20 seconds, or a button sends the same signal as one you already pressed, the wizard stops and asks what to do.
+3. When you're done, you can send a button to test it, learn a button again, add more of the suggested buttons, or add buttons with your own names.
+
+The device then works like any other of its type: a TV, projector or speaker becomes a media player, a fan becomes a fan, and blinds or a projector screen become a cover. Buttons the device type can't use, such as Channel up, become button entities on the same device.
+
+For **Something else**, you name each button yourself and get a list of buttons:
+
 1. Enter the name of a button, for example, Power, and select **Next**.
 2. Within 30 seconds, point your remote at the receiver and press that button.
-3. Check what was received. You can:
-   - **Send it now to test** to check that your device reacts.
-   - **Save and learn the next button**.
-   - **Save and finish**.
-   - **Learn it again**.
+3. Check what was received, then save it and learn the next button, or finish.
 
 To finish, leave the button name empty and select **Next**.
 
@@ -110,7 +116,8 @@ Most receivers do not report the carrier frequency. In that case, the integratio
 
 ## Known limitations
 
-- There is no on or off state, because infrared only goes one way. Learn Power on and Power off as separate buttons if your remote has them.
+- Infrared only goes one way, so on, off and the selected input are assumed from what Home Assistant last sent. If your remote has separate Power on and Power off buttons, learn those: they always work, even if the assumed state is wrong.
+- Fan speed stays as Speed up and Speed down buttons, because infrared can only step the speed.
 - Only NEC codes are recognized. Other codes are stored and sent as recorded.
 - If your remote changes its code on every press, a learned button may only work every other time.
 - Listening uses the same matching as learning, so two learned buttons that send the same code both fire.

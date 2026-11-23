@@ -2,17 +2,10 @@
   "config": {
     "step": {
       "user": {
-        "title": "Create a custom infrared remote",
-        "description": "A custom infrared remote is one device with a button for each command you teach it.",
+        "title": "What does this remote control?",
+        "description": "Pick the closest match. The device then works like any other in Home Assistant, with the right controls on your dashboard. Pick **Something else** to make a list of buttons instead.",
         "data": {
-          "name": "Name",
-          "emitter_entity_id": "Infrared emitter",
-          "receiver_entity_id": "Infrared receiver"
-        },
-        "data_description": {
-          "name": "The device you control, for example, Living room TV.",
-          "emitter_entity_id": "Sends the commands to the device.",
-          "receiver_entity_id": "Hears your remote while you teach it buttons."
+          "device_type": "Device"
         }
       },
       "command_name": {
@@ -34,10 +27,79 @@
           "save_finish": "Save and finish",
           "retry": "Learn it again"
         }
+      },
+      "details": {
+        "title": "Name and infrared device",
+        "data": {
+          "name": "Name",
+          "emitter_entity_id": "Infrared emitter",
+          "receiver_entity_id": "Infrared receiver"
+        },
+        "data_description": {
+          "name": "For example, Living room TV.",
+          "emitter_entity_id": "Sends the commands to the device.",
+          "receiver_entity_id": "Hears your remote while you teach it buttons."
+        }
+      },
+      "buttons": {
+        "title": "Pick the buttons",
+        "description": "Tick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nYou can add other buttons with your own names at the end.",
+        "data": {
+          "buttons": "Buttons"
+        }
+      },
+      "capture_missed": {
+        "title": "Nothing received",
+        "description": "Nothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
+        "menu_options": {
+          "capture_retry": "Try again",
+          "capture_skip": "Skip this button",
+          "capture_stop": "Stop here and keep what was learned"
+        }
+      },
+      "capture_duplicate": {
+        "title": "Same as another button",
+        "description": "What was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
+        "menu_options": {
+          "capture_retry": "Press it again",
+          "capture_accept": "Keep it anyway",
+          "capture_skip": "Skip this button"
+        }
+      },
+      "ready": {
+        "title": "Your device is ready",
+        "description": "**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
+        "menu_options": {
+          "ready_test": "Send a button to test it",
+          "ready_relearn": "Learn a button again",
+          "ready_more": "Add more of the suggested buttons",
+          "ready_custom": "Add buttons with your own names",
+          "ready_finish": "Finish"
+        }
+      },
+      "ready_test": {
+        "title": "Send a button",
+        "data": {
+          "button": "Button"
+        }
+      },
+      "ready_relearn": {
+        "title": "Learn a button again",
+        "description": "Press it on the remote when asked. It keeps its name.",
+        "data": {
+          "button": "Button"
+        }
+      },
+      "capture": {
+        "title": "Press the buttons"
+      },
+      "capture_next": {
+        "title": "Press the buttons"
       }
     },
     "progress": {
-      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds."
+      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds.",
+      "press_button": "**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself.\n\n{checklist}"
     },
     "error": {
       "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
@@ -110,10 +172,66 @@
         "data_description": {
           "listen": "Fires an event when the receiver hears one of the learned buttons from the original remote. Use it to trigger automations."
         }
+      },
+      "buttons": {
+        "title": "Pick the buttons",
+        "description": "Tick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nYou can add other buttons with your own names at the end.",
+        "data": {
+          "buttons": "Buttons"
+        }
+      },
+      "capture_missed": {
+        "title": "Nothing received",
+        "description": "Nothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
+        "menu_options": {
+          "capture_retry": "Try again",
+          "capture_skip": "Skip this button",
+          "capture_stop": "Stop here and keep what was learned"
+        }
+      },
+      "capture_duplicate": {
+        "title": "Same as another button",
+        "description": "What was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
+        "menu_options": {
+          "capture_retry": "Press it again",
+          "capture_accept": "Keep it anyway",
+          "capture_skip": "Skip this button"
+        }
+      },
+      "ready": {
+        "title": "Buttons",
+        "description": "**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
+        "menu_options": {
+          "ready_test": "Send a button to test it",
+          "ready_relearn": "Learn a button again",
+          "ready_more": "Add more of the suggested buttons",
+          "ready_custom": "Add buttons with your own names",
+          "ready_finish": "Save and close"
+        }
+      },
+      "ready_test": {
+        "title": "Send a button",
+        "data": {
+          "button": "Button"
+        }
+      },
+      "ready_relearn": {
+        "title": "Learn a button again",
+        "description": "Press it on the remote when asked. It keeps its name.",
+        "data": {
+          "button": "Button"
+        }
+      },
+      "capture": {
+        "title": "Press the buttons"
+      },
+      "capture_next": {
+        "title": "Press the buttons"
       }
     },
     "progress": {
-      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds."
+      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds.",
+      "press_button": "**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself.\n\n{checklist}"
     },
     "error": {
       "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
@@ -130,6 +248,19 @@
             "name": "Button"
           }
         }
+      }
+    }
+  },
+  "selector": {
+    "device_type": {
+      "options": {
+        "tv": "TV",
+        "projector": "Projector",
+        "speaker": "Speakers or AV receiver",
+        "fan": "Fan",
+        "blinds": "Blinds or curtains",
+        "screen": "Projector screen",
+        "generic": "Something else"
       }
     }
   }

@@ -7,9 +7,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import CMD_ID, CMD_NAME, CONF_COMMANDS
+from .const import CMD_ID, CMD_NAME
 from .entity import LearnedRemoteEntity
 from .signal import LearnedCommand
+from .templates import button_commands
 
 PARALLEL_UPDATES = 1
 
@@ -19,10 +20,9 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add a button for each learned command."""
+    """Add a button for each command the main entity doesn't cover."""
     async_add_entities(
-        LearnedCommandButton(entry, command)
-        for command in entry.options.get(CONF_COMMANDS, [])
+        LearnedCommandButton(entry, command) for command in button_commands(entry)
     )
 
 

@@ -44,6 +44,7 @@ from .const import (
     CMD_NAME,
     CMD_TIMINGS,
     CONF_COMMANDS,
+    CONF_DEVICE_TYPE,
     CONF_EMITTER,
     CONF_LISTEN,
     CONF_RECEIVER,
@@ -56,6 +57,8 @@ from .signal import (
     async_mark_sent,
     find_duplicate,
 )
+from .templates import DEVICE_GENERIC, DEVICE_TV, TEMPLATES, get_template
+from .wizard import GuidedCaptureMixin
 
 CONF_COMMAND = "command"
 
@@ -293,14 +296,17 @@ class LearnLoopMixin:
         return await self._async_finish()
 
 
-class LearnedRemoteConfigFlow(LearnLoopMixin, ConfigFlow, domain=DOMAIN):
-    """Create a remote, then learn its buttons."""
+class LearnedRemoteConfigFlow(
+    GuidedCaptureMixin, LearnLoopMixin, ConfigFlow, domain=DOMAIN
+):
+    """Create a remote: pick what it controls, then learn its buttons."""
 
     VERSION = 1
 
     def __init__(self) -> None:
         """Initialize the flow."""
         self._commands = []
+        self._device_type = None
 
     @staticmethod
     @callback
@@ -313,21 +319,51 @@ class LearnedRemoteConfigFlow(LearnLoopMixin, ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Name the remote and pick the emitter and receiver."""
+        """Pick what the remote controls."""
         if not async_get_emitters(self.hass):
             return self.async_abort(reason="no_emitters")
         if not async_get_receivers(self.hass):
             return self.async_abort(reason="no_receivers")
 
         if user_input is not None:
+            self._device_type = user_input[CONF_DEVICE_TYPE]
+            return await self.async_step_details()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(CONF_DEVICE_TYPE, default=DEVICE_TV): (
+                        SelectSelector(
+                            SelectSelectorConfig(
+                                options=list(TEMPLATES),
+                                mode=SelectSelectorMode.LIST,
+                                translation_key=CONF_DEVICE_TYPE,
+                            )
+                        )
+                    )
+                }
+            ),
+            last_step=False,
+        )
+
+    async def async_step_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Name the device and pick the emitter and receiver."""
+        if user_input is not None:
             self._remote_name = user_input[CONF_NAME]
             self._emitter = user_input[CONF_EMITTER]
             self._receiver = user_input[CONF_RECEIVER]
-            return self._async_show_name_form()
+            if self._device_type == DEVICE_GENERIC:
+                return self._async_show_name_form()
+            return await self.async_step_buttons()
 
         emitters = async_get_emitters(self.hass)
         receivers = async_get_receivers(self.hass)
-        suggested = {}
+        suggested: dict[str, Any] = {}
+        if name := get_template(self._device_type).suggested_name:
+            suggested[CONF_NAME] = name
         if len(emitters) == 1:
             suggested[CONF_EMITTER] = emitters[0]
         if len(receivers) == 1:
@@ -340,7 +376,7 @@ class LearnedRemoteConfigFlow(LearnLoopMixin, ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(
-            step_id="user",
+            step_id="details",
             data_schema=self.add_suggested_values_to_schema(schema, suggested),
             last_step=False,
         )
@@ -349,12 +385,16 @@ class LearnedRemoteConfigFlow(LearnLoopMixin, ConfigFlow, domain=DOMAIN):
     async def _async_finish(self) -> ConfigFlowResult:
         return self.async_create_entry(
             title=self._remote_name,
-            data={CONF_EMITTER: self._emitter, CONF_RECEIVER: self._receiver},
+            data={
+                CONF_EMITTER: self._emitter,
+                CONF_RECEIVER: self._receiver,
+                CONF_DEVICE_TYPE: self._device_type,
+            },
             options={CONF_COMMANDS: self._commands},
         )
 
 
-class LearnedRemoteOptionsFlow(LearnLoopMixin, OptionsFlow):
+class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
     """Manage the buttons of a remote."""
 
     async def async_step_init(
@@ -365,6 +405,7 @@ class LearnedRemoteOptionsFlow(LearnLoopMixin, OptionsFlow):
         self._remote_name = entry.title
         self._emitter = entry.data[CONF_EMITTER]
         self._receiver = entry.data[CONF_RECEIVER]
+        self._device_type = entry.data.get(CONF_DEVICE_TYPE)
         self._commands = list(entry.options.get(CONF_COMMANDS, []))
 
         options = ["learn_more"]
@@ -387,7 +428,11 @@ class LearnedRemoteOptionsFlow(LearnLoopMixin, OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Learn new buttons."""
-        return self._async_show_name_form()
+        if get_template(self._device_type).platform is None:
+            return self._async_show_name_form()
+        if self._missing_roles():
+            return await self.async_step_buttons()
+        return self._async_show_ready()
 
     async def async_step_relearn(
         self, user_input: dict[str, Any] | None = None

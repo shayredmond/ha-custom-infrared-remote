@@ -32,6 +32,17 @@ from custom_components.custom_infrared_remote.const import (
 from .conftest import POWER, RAW, VOL_UP, nec
 
 
+async def _start_generic(hass):
+    """Start the flow and pick Something else (a plain list of buttons)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    assert result["step_id"] == "user"
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"device_type": "generic"}
+    )
+
+
 async def _press(hass, receiver, flow_id, timings, modulation=None):
     receiver._handle_received_signal(InfraredReceivedSignal(timings, modulation))
     await hass.async_block_till_done()
@@ -47,10 +58,8 @@ async def test_full_flow(
 ) -> None:
     """Create a remote, learn two buttons, test one, end with one device."""
     receiver = mock_infrared_receiver_entity
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": SOURCE_USER}
-    )
-    assert result["step_id"] == "user"
+    result = await _start_generic(hass)
+    assert result["step_id"] == "details"
     flow_id = result["flow_id"]
 
     result = await hass.config_entries.flow.async_configure(
@@ -153,9 +162,7 @@ async def test_finish_without_commands(
     mock_infrared_receiver_entity: MockInfraredReceiverEntity,
 ) -> None:
     """An empty name finishes, so a remote can be created now and taught later."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": SOURCE_USER}
-    )
+    result = await _start_generic(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
@@ -176,9 +183,7 @@ async def test_no_signal(
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """On timeout the name form comes back with the name filled in."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": SOURCE_USER}
-    )
+    result = await _start_generic(hass)
     flow_id = result["flow_id"]
     await hass.config_entries.flow.async_configure(
         flow_id,
@@ -251,9 +256,7 @@ async def test_protobuf_timings_are_stored_as_list(
     mock_infrared_receiver_entity: MockInfraredReceiverEntity,
 ) -> None:
     """Timings from ESPHome must be stored as a plain list, or entry storage breaks."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": SOURCE_USER}
-    )
+    result = await _start_generic(hass)
     flow_id = result["flow_id"]
     await hass.config_entries.flow.async_configure(
         flow_id,
