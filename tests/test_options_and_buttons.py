@@ -1,7 +1,6 @@
 """Test the buttons and managing commands."""
 
 import pytest
-from homeassistant.components.infrared import InfraredReceivedSignal
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -12,7 +11,7 @@ from pytest_homeassistant.components.infrared.common import (
     MockInfraredReceiverEntity,
 )
 
-from .conftest import RAW, VOL_UP, nec
+from .conftest import VOL_UP
 
 
 @pytest.fixture
@@ -78,82 +77,13 @@ async def test_button_press(
 
 
 async def test_options_menu(hass: HomeAssistant, setup: MockConfigEntry) -> None:
-    """The menu shows the buttons."""
+    """The menu links to the learning screen and manages the buttons."""
     result = await hass.config_entries.options.async_init(setup.entry_id)
     assert result["type"] is FlowResultType.MENU
-    assert result["menu_options"] == [
-        "learn_more",
-        "relearn",
-        "rename",
-        "delete",
-        "settings",
-    ]
-    assert result["description_placeholders"]["learned"] == "Power, Volume up"
-
-
-async def test_options_learn_more(
-    hass: HomeAssistant,
-    setup: MockConfigEntry,
-    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
-) -> None:
-    """Learn a new button from the options flow; existing ones stay."""
-    result = await hass.config_entries.options.async_init(setup.entry_id)
-    flow_id = result["flow_id"]
-    result = await hass.config_entries.options.async_configure(
-        flow_id, {"next_step_id": "learn_more"}
+    assert result["menu_options"] == ["rename", "delete", "settings"]
+    assert result["description_placeholders"]["link"] == (
+        f"/custom-infrared-remote/{setup.entry_id}"
     )
-    assert result["step_id"] == "command_name"
-    result = await hass.config_entries.options.async_configure(
-        flow_id, {"name": "Mute"}
-    )
-    mock_infrared_receiver_entity._handle_received_signal(InfraredReceivedSignal(RAW))
-    await hass.async_block_till_done()
-    result = await hass.config_entries.options.async_configure(flow_id)
-    assert result["step_id"] == "review"
-    result = await hass.config_entries.options.async_configure(
-        flow_id, {"next_step_id": "save_finish"}
-    )
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    await hass.async_block_till_done()
-    assert [c["name"] for c in setup.options["commands"]] == [
-        "Power",
-        "Volume up",
-        "Mute",
-    ]
-    assert hass.states.get("button.living_room_tv_mute")
-
-
-async def test_options_relearn(
-    hass: HomeAssistant,
-    setup: MockConfigEntry,
-    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
-    entity_registry: er.EntityRegistry,
-) -> None:
-    """Re-learning keeps the name, id and entity."""
-    entity_id = "button.living_room_tv_power"
-    unique_id = entity_registry.async_get(entity_id).unique_id
-    result = await hass.config_entries.options.async_init(setup.entry_id)
-    flow_id = result["flow_id"]
-    result = await hass.config_entries.options.async_configure(
-        flow_id, {"next_step_id": "relearn"}
-    )
-    result = await hass.config_entries.options.async_configure(
-        flow_id, {"command": "p"}
-    )
-    assert result["type"] is FlowResultType.SHOW_PROGRESS
-    mock_infrared_receiver_entity._handle_received_signal(
-        InfraredReceivedSignal(nec(0x0A))
-    )
-    await hass.async_block_till_done()
-    result = await hass.config_entries.options.async_configure(flow_id)
-    assert result["menu_options"] == ["test", "save_finish", "retry"]
-    result = await hass.config_entries.options.async_configure(
-        flow_id, {"next_step_id": "save_finish"}
-    )
-    await hass.async_block_till_done()
-    power = setup.options["commands"][0]
-    assert (power["id"], power["name"], power["timings"]) == ("p", "Power", nec(0x0A))
-    assert entity_registry.async_get(entity_id).unique_id == unique_id
 
 
 async def test_options_rename(

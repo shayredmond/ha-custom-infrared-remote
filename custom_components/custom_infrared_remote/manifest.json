@@ -9,13 +9,15 @@
   ],
   "config_flow": true,
   "dependencies": [
+    "frontend",
     "http",
-    "infrared"
+    "infrared",
+    "websocket_api"
   ],
   "documentation": "https://github.com/shayredmond/ha-custom-infrared-remote",
   "integration_type": "device",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/shayredmond/ha-custom-infrared-remote/issues",
   "requirements": [],
-  "version": "0.4.0b3"
+  "version": "0.4.0b4"
 }

@@ -1,10 +1,10 @@
 """Config and options flows for the Custom infrared remote integration.
 
-One config entry is one remote. Commands live in the entry options, so the
-options flow is where they are learned, re-learned, renamed and deleted.
+The setup dialog only picks what the remote controls and which infrared
+device it uses. Buttons are learned on the learning screen (panel.py),
+which the dialog links to when it finishes and the device page opens later.
 """
 
-import asyncio
 from typing import Any, override
 from uuid import uuid4
 
@@ -15,7 +15,6 @@ from homeassistant.components.infrared import (
 from homeassistant.components.infrared import (
     async_get_emitters,
     async_get_receivers,
-    async_send_command,
 )
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -25,8 +24,6 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -39,37 +36,16 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CMD_ID,
-    CMD_MODULATION,
     CMD_NAME,
-    CMD_TIMINGS,
     CONF_COMMANDS,
     CONF_DEVICE_TYPE,
     CONF_EMITTER,
+    CONF_HIDDEN_ROLES,
     CONF_RECEIVER,
     DOMAIN,
 )
-from .illustrations import async_register_view
-from .signal import (
-    LearnedCommand,
-    LearnedSignal,
-    async_learn_signal,
-    async_mark_sent,
-    find_duplicate,
-)
-from .templates import (
-    DEVICE_BLINDS,
-    DEVICE_FAN,
-    DEVICE_GENERIC,
-    DEVICE_PROJECTOR,
-    DEVICE_SCREEN,
-    DEVICE_SPEAKER,
-    DEVICE_TV,
-    TEMPLATES,
-    get_template,
-)
-from .wizard import GuidedCaptureMixin
-
-CONF_COMMAND = "command"
+from .panel import panel_path
+from .templates import TEMPLATES, get_template
 
 
 def _emitter_selector(hass: HomeAssistant) -> EntitySelector:
@@ -95,233 +71,18 @@ def _command_options(commands: list[dict[str, Any]]) -> list[SelectOptionDict]:
     ]
 
 
-class LearnLoopMixin:
-    """Steps shared by the config flow and the options flow.
-
-    command_name -> learn (progress) -> learn_done -> review (menu)
-    review offers: test, save and learn the next one, save and finish, retry.
-    """
-
-    hass: HomeAssistant
-
-    _remote_name: str
-    _emitter: str
-    _receiver: str
-    _commands: list[dict[str, Any]]
-
-    _pending_name: str | None = None
-    _replace_id: str | None = None
-    _signal: LearnedSignal | None = None
-    _learn_task: asyncio.Task[LearnedSignal | None] | None = None
-
-    # Provided by FlowHandler
-    async_show_form: Any
-    async_show_menu: Any
-    async_show_progress: Any
-    async_show_progress_done: Any
-    add_suggested_values_to_schema: Any
-
-    async def _async_finish(self) -> FlowResult:
-        """Store the commands and close the flow."""
-        raise NotImplementedError
-
-    def _other_commands(self) -> list[dict[str, Any]]:
-        """Commands other than the one being re-learned."""
-        return [c for c in self._commands if c[CMD_ID] != self._replace_id]
-
-    @callback
-    def _async_show_name_form(self, errors: dict[str, str] | None = None) -> FlowResult:
-        schema = probatio.Schema({probatio.Optional(CONF_NAME): TextSelector()})
-        learned = [c[CMD_NAME] for c in self._commands]
-        return self.async_show_form(
-            step_id="command_name",
-            data_schema=self.add_suggested_values_to_schema(
-                schema, {CONF_NAME: self._pending_name} if errors else {}
-            ),
-            errors=errors,
-            description_placeholders={
-                "remote": self._remote_name,
-                "learned": ", ".join(learned) if learned else "none yet",
-            },
-            last_step=False,
-        )
-
-    async def async_step_command_name(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Ask which button is next. Leave it empty to finish."""
-        if user_input is None:
-            self._pending_name = None
-            return self._async_show_name_form()
-
-        name = (user_input.get(CONF_NAME) or "").strip()
-        if not name:
-            return await self._async_finish()
-
-        self._pending_name = name
-        if any(c[CMD_NAME].casefold() == name.casefold() for c in self._commands):
-            return self._async_show_name_form({CONF_NAME: "name_exists"})
-
-        self._replace_id = None
-        return await self.async_step_learn()
-
-    async def async_step_learn(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Wait for the button press."""
-        if self._learn_task is None:
-            self._signal = None
-            self._learn_task = self.hass.async_create_task(
-                async_learn_signal(self.hass, self._receiver)
-            )
-
-        if not self._learn_task.done():
-            return self.async_show_progress(
-                step_id="learn",
-                progress_action="wait_for_signal",
-                progress_task=self._learn_task,
-                description_placeholders={"name": self._pending_name or ""},
-            )
-
-        self._signal = self._learn_task.result()
-        self._learn_task = None
-        return self.async_show_progress_done(next_step_id="learn_done")
-
-    async def async_step_learn_done(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Review the signal, or ask again when nothing arrived."""
-        if self._signal is None:
-            if self._replace_id is not None:
-                return self._async_show_review(note="no_signal")
-            return self._async_show_name_form({"base": "no_signal"})
-        return self._async_show_review()
-
-    @callback
-    def _async_show_review(self, note: str | None = None) -> FlowResult:
-        notes: list[str] = []
-        if self._signal is None:
-            notes.append(
-                "Nothing was received in 30 seconds. Point the remote at the "
-                "receiver from close by and try again."
-            )
-        else:
-            if dup := find_duplicate(self._signal, self._other_commands()):
-                notes.append(
-                    f"This looks the same as **{dup}**. Check you pressed the "
-                    "right button."
-                )
-            if self._signal.held_repeats:
-                notes.append(
-                    "You held the button. The repeats were removed, so this "
-                    "sends one press."
-                )
-            if note == "sent":
-                notes.append(
-                    "Sent. If the device reacted, save it. If not, learn it again."
-                )
-            elif note == "send_failed":
-                notes.append("The emitter could not send the command.")
-
-        if self._signal is None:
-            options = ["retry"]
-        elif self._replace_id is not None:
-            options = ["test", "save_finish", "retry"]
-        else:
-            options = ["test", "save_next", "save_finish", "retry"]
-
-        return self.async_show_menu(
-            step_id="review",
-            menu_options=options,
-            description_placeholders={
-                "name": self._pending_name or "",
-                "summary": self._signal.summary() if self._signal else "",
-                "notes": "\n\n".join(notes),
-            },
-        )
-
-    async def async_step_review(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Show the review menu."""
-        return self._async_show_review()
-
-    async def async_step_test(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Send the captured signal once through the emitter."""
-        assert self._signal is not None
-        async_mark_sent(self.hass, self._emitter)
-        try:
-            await async_send_command(
-                self.hass,
-                self._emitter,
-                LearnedCommand(self._signal.timings, self._signal.modulation),
-            )
-        except HomeAssistantError:
-            return self._async_show_review(note="send_failed")
-        async_mark_sent(self.hass, self._emitter)
-        return self._async_show_review(note="sent")
-
-    async def async_step_retry(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Learn the same button again."""
-        return await self.async_step_learn()
-
-    @callback
-    def _async_commit(self) -> None:
-        """Add the pending command, or replace the one being re-learned."""
-        assert self._signal is not None and self._pending_name is not None
-        stored = self._signal.as_stored(self._pending_name)
-        if self._replace_id is not None:
-            self._commands = [
-                {
-                    **c,
-                    CMD_TIMINGS: stored[CMD_TIMINGS],
-                    CMD_MODULATION: stored[CMD_MODULATION],
-                }
-                if c[CMD_ID] == self._replace_id
-                else c
-                for c in self._commands
-            ]
-        else:
-            self._commands = [*self._commands, {CMD_ID: uuid4().hex, **stored}]
-        self._signal = None
-        self._pending_name = None
-
-    async def async_step_save_next(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Save and move on to the next button."""
-        self._async_commit()
-        return self._async_show_name_form()
-
-    async def async_step_save_finish(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Save and close."""
-        self._async_commit()
-        return await self._async_finish()
-
-
-class LearnedRemoteConfigFlow(
-    GuidedCaptureMixin, LearnLoopMixin, ConfigFlow, domain=DOMAIN
-):
-    """Create a remote: pick what it controls, then learn its buttons."""
+class LearnedRemoteConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Create a remote: pick what it controls and the infrared device."""
 
     VERSION = 1
 
-    def __init__(self) -> None:
-        """Initialize the flow."""
-        self._commands = []
-        self._device_type = None
+    _device_type: str
 
     @staticmethod
     @callback
     @override
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        """Return the flow to manage commands."""
+        """Return the flow to manage the remote."""
         return LearnedRemoteOptionsFlow()
 
     @override
@@ -333,58 +94,40 @@ class LearnedRemoteConfigFlow(
             return self.async_abort(reason="no_emitters")
         if not async_get_receivers(self.hass):
             return self.async_abort(reason="no_receivers")
-        async_register_view(self.hass)
         return self.async_show_menu(step_id="user", menu_options=list(TEMPLATES))
 
     async def _async_pick_type(self, device_type: str) -> ConfigFlowResult:
         self._device_type = device_type
         return await self.async_step_details()
 
-    async def async_step_tv(self, user_input: Any = None) -> ConfigFlowResult:
-        """TV."""
-        return await self._async_pick_type(DEVICE_TV)
-
-    async def async_step_projector(self, user_input: Any = None) -> ConfigFlowResult:
-        """Projector."""
-        return await self._async_pick_type(DEVICE_PROJECTOR)
-
-    async def async_step_speaker(self, user_input: Any = None) -> ConfigFlowResult:
-        """Speakers or AV receiver."""
-        return await self._async_pick_type(DEVICE_SPEAKER)
-
-    async def async_step_fan(self, user_input: Any = None) -> ConfigFlowResult:
-        """Fan."""
-        return await self._async_pick_type(DEVICE_FAN)
-
-    async def async_step_blinds(self, user_input: Any = None) -> ConfigFlowResult:
-        """Blinds or curtains."""
-        return await self._async_pick_type(DEVICE_BLINDS)
-
-    async def async_step_screen(self, user_input: Any = None) -> ConfigFlowResult:
-        """Projector screen."""
-        return await self._async_pick_type(DEVICE_SCREEN)
-
-    async def async_step_generic(self, user_input: Any = None) -> ConfigFlowResult:
-        """Something else: a list of buttons."""
-        return await self._async_pick_type(DEVICE_GENERIC)
-
     async def async_step_details(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Name the device and pick the emitter and receiver."""
+        template = get_template(self._device_type)
         if user_input is not None:
-            self._remote_name = user_input[CONF_NAME]
-            self._emitter = user_input[CONF_EMITTER]
-            self._receiver = user_input[CONF_RECEIVER]
-            if self._device_type == DEVICE_GENERIC:
-                return self._async_show_name_form()
-            return await self.async_step_buttons()
+            # The link at the end of setup needs an ID before the entry exists
+            await self.async_set_unique_id(uuid4().hex)
+            return self.async_create_entry(
+                title=user_input[CONF_NAME],
+                data={
+                    CONF_EMITTER: user_input[CONF_EMITTER],
+                    CONF_RECEIVER: user_input[CONF_RECEIVER],
+                    CONF_DEVICE_TYPE: self._device_type,
+                },
+                options={
+                    CONF_COMMANDS: [],
+                    # Only the common buttons come up; the rest start hidden
+                    CONF_HIDDEN_ROLES: [r.key for r in template.roles if not r.default],
+                },
+                description_placeholders={"link": panel_path(self.unique_id or "")},
+            )
 
         emitters = async_get_emitters(self.hass)
         receivers = async_get_receivers(self.hass)
         suggested: dict[str, Any] = {}
-        if name := get_template(self._device_type).suggested_name:
-            suggested[CONF_NAME] = name
+        if template.suggested_name:
+            suggested[CONF_NAME] = template.suggested_name
         if len(emitters) == 1:
             suggested[CONF_EMITTER] = emitters[0]
         if len(receivers) == 1:
@@ -399,84 +142,49 @@ class LearnedRemoteConfigFlow(
         return self.async_show_form(
             step_id="details",
             data_schema=self.add_suggested_values_to_schema(schema, suggested),
-            last_step=False,
-        )
-
-    @override
-    async def _async_finish(self) -> ConfigFlowResult:
-        return self.async_create_entry(
-            title=self._remote_name,
-            data={
-                CONF_EMITTER: self._emitter,
-                CONF_RECEIVER: self._receiver,
-                CONF_DEVICE_TYPE: self._device_type,
-            },
-            options={CONF_COMMANDS: self._commands},
         )
 
 
-class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
-    """Manage the buttons of a remote."""
+def _type_step(device_type: str) -> Any:
+    async def step(
+        self: LearnedRemoteConfigFlow, user_input: Any = None
+    ) -> ConfigFlowResult:
+        return await self._async_pick_type(device_type)
+
+    step.__doc__ = f"Pick {device_type}."
+    return step
+
+
+# One menu step per device type
+for _device_type in TEMPLATES:
+    setattr(
+        LearnedRemoteConfigFlow, f"async_step_{_device_type}", _type_step(_device_type)
+    )
+
+
+class LearnedRemoteOptionsFlow(OptionsFlow):
+    """Rename and delete buttons, or change the infrared device.
+
+    Learning happens on the learning screen, which this menu links to.
+    """
+
+    _commands: list[dict[str, Any]]
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Show what can be done with the remote."""
         entry = self.config_entry
-        self._remote_name = entry.title
-        self._emitter = entry.data[CONF_EMITTER]
-        self._receiver = entry.data[CONF_RECEIVER]
-        self._device_type = entry.data.get(CONF_DEVICE_TYPE)
         self._commands = list(entry.options.get(CONF_COMMANDS, []))
-        async_register_view(self.hass)
-
-        options = ["learn_more"]
-        if self._commands:
-            options += ["relearn", "rename", "delete"]
+        options = ["rename", "delete"] if self._commands else []
         options.append("settings")
-
-        names = [c[CMD_NAME] for c in self._commands]
         return self.async_show_menu(
             step_id="init",
             menu_options=options,
             description_placeholders={
-                "remote": self._remote_name,
-                "count": str(len(names)),
-                "learned": ", ".join(names) if names else "none yet",
+                "remote": entry.title,
+                "link": panel_path(entry.entry_id),
             },
-        )
-
-    async def async_step_learn_more(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Learn new buttons."""
-        if get_template(self._device_type).platform is None:
-            return self._async_show_name_form()
-        if self._missing_roles():
-            return await self.async_step_buttons()
-        return self._async_show_ready()
-
-    async def async_step_relearn(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Pick a command to learn again."""
-        if user_input is not None:
-            self._replace_id = user_input[CONF_COMMAND]
-            self._pending_name = next(
-                c[CMD_NAME] for c in self._commands if c[CMD_ID] == self._replace_id
-            )
-            return await self.async_step_learn()
-
-        return self.async_show_form(
-            step_id="relearn",
-            data_schema=probatio.Schema(
-                {
-                    probatio.Required(CONF_COMMAND): SelectSelector(
-                        SelectSelectorConfig(options=_command_options(self._commands))
-                    )
-                }
-            ),
-            last_step=False,
         )
 
     async def async_step_rename(
@@ -562,6 +270,7 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
             ),
         )
 
-    @override
     async def _async_finish(self) -> ConfigFlowResult:
-        return self.async_create_entry(data={CONF_COMMANDS: self._commands})
+        return self.async_create_entry(
+            data={**self.config_entry.options, CONF_COMMANDS: self._commands}
+        )

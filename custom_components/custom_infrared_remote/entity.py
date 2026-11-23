@@ -25,6 +25,8 @@ class LearnedRemoteEntity(InfraredEmitterConsumerEntity):
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
             model="Custom infrared remote",
+            # Opens the learning screen from the device page
+            configuration_url=f"homeassistant://custom-infrared-remote/{entry.entry_id}",
         )
 
     async def _send_command(self, command: InfraredCommand) -> None:

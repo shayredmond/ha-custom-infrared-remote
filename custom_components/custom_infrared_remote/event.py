@@ -22,6 +22,7 @@ from .const import (
     MIN_TIMINGS,
     REPEAT_WINDOW,
 )
+from .panel import async_is_learning
 from .signal import (
     LearnedSignal,
     async_mark_sent,
@@ -84,6 +85,8 @@ class LearnedRemoteButtonEvent(InfraredReceiverConsumerEntity, EventEntity):
     def _handle_signal(self, signal: InfraredReceivedSignal) -> None:
         """Fire the event if the signal is one of the learned buttons."""
         if len(signal.timings) < MIN_TIMINGS:
+            return
+        if async_is_learning(self.hass, self._entry.entry_id):
             return
         if async_recently_sent(self.hass, self._emitter):
             return

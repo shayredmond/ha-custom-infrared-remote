@@ -23,28 +23,9 @@
           "generic": "Name each button yourself and get a list of buttons."
         }
       },
-      "command_name": {
-        "title": "Learn a button",
-        "description": "Which button on the remote do you want to learn next? After you select **Next**, you have 30 seconds to press it.\n\nLearned so far: {learned}.\n\nLeave the name empty and select **Next** when you are done.",
-        "data": {
-          "name": "Button name"
-        },
-        "data_description": {
-          "name": "For example, Power, Volume up or HDMI 1."
-        }
-      },
-      "review": {
-        "title": "Check the button",
-        "description": "**{name}**\n\n{summary}\n\n{notes}",
-        "menu_options": {
-          "test": "Send it now to test",
-          "save_next": "Save and learn the next button",
-          "save_finish": "Save and finish",
-          "retry": "Learn it again"
-        }
-      },
       "details": {
         "title": "Name and infrared device",
+        "description": "Next, you teach it the buttons of your remote.",
         "data": {
           "name": "Name",
           "emitter_entity_id": "Infrared emitter",
@@ -55,129 +36,10 @@
           "emitter_entity_id": "Sends the commands to the device.",
           "receiver_entity_id": "Hears your remote while you teach it buttons."
         }
-      },
-      "buttons": {
-        "title": "Pick the buttons",
-        "description": "{image}\n\nTick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nYou can add other buttons with your own names at the end.",
-        "sections": {
-          "power": {
-            "name": "Power",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "volume": {
-            "name": "Volume",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "channels": {
-            "name": "Channels",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "inputs": {
-            "name": "Inputs",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "playback": {
-            "name": "Playback",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "navigation": {
-            "name": "Navigation",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "controls": {
-            "name": "Controls",
-            "data": {
-              "buttons": "Buttons"
-            }
-          }
-        }
-      },
-      "capture_missed": {
-        "title": "Nothing received",
-        "description": "{image}\n\nNothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
-        "menu_options": {
-          "capture_retry": "Try again",
-          "capture_skip": "Skip this button",
-          "capture_stop": "Stop here and keep what was learned"
-        },
-        "menu_option_descriptions": {
-          "capture_retry": "Wait for {name} again.",
-          "capture_skip": "Leave it out. You can add it later.",
-          "capture_stop": "Skip the remaining buttons too."
-        }
-      },
-      "capture_duplicate": {
-        "title": "Same as another button",
-        "description": "{image}\n\nWhat was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
-        "menu_options": {
-          "capture_retry": "Press it again",
-          "capture_accept": "Keep it anyway",
-          "capture_skip": "Skip this button"
-        },
-        "menu_option_descriptions": {
-          "capture_retry": "Wait for {name} again.",
-          "capture_accept": "Some remotes do send the same signal for two buttons.",
-          "capture_skip": "Leave it out. You can add it later."
-        }
-      },
-      "ready": {
-        "title": "Your device is ready",
-        "description": "{image}\n\n**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
-        "menu_options": {
-          "ready_test": "Send a button to test it",
-          "ready_relearn": "Learn a button again",
-          "ready_more": "Add more of the suggested buttons",
-          "ready_custom": "Add buttons with your own names",
-          "ready_finish": "Finish"
-        },
-        "menu_option_descriptions": {
-          "ready_test": "Send one learned button through the emitter.",
-          "ready_relearn": "Press a button again if it was learned wrong.",
-          "ready_more": "Pick from the buttons you didn't tick.",
-          "ready_custom": "For buttons that aren't in the list.",
-          "ready_finish": "Save the device."
-        }
-      },
-      "ready_test": {
-        "title": "Send a button",
-        "data": {
-          "button": "Button"
-        }
-      },
-      "ready_relearn": {
-        "title": "Learn a button again",
-        "description": "Press it on the remote when asked. It keeps its name.",
-        "data": {
-          "button": "Button"
-        }
-      },
-      "capture": {
-        "title": "Press the buttons"
-      },
-      "capture_next": {
-        "title": "Press the buttons"
       }
     },
-    "progress": {
-      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds.",
-      "press_button": "{image}\n\n**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself."
-    },
-    "error": {
-      "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
-      "name_exists": "This remote already has a button with this name.",
-      "name_empty": "Each button needs a name."
+    "create_entry": {
+      "default": "Now teach it the buttons of your remote.\n\n**[Learn the buttons]({link})**\n\nYou can come back to it any time from the device page."
     },
     "abort": {
       "no_emitters": "No infrared emitter found. Add a device that can send infrared first.",
@@ -187,41 +49,12 @@
   "options": {
     "step": {
       "init": {
-        "title": "Manage buttons",
-        "description": "**{remote}** has {count} buttons: {learned}.",
+        "title": "Manage this remote",
+        "description": "To learn, relearn, skip or hide buttons on **{remote}**, **[open the learning screen]({link})**.",
         "menu_options": {
-          "learn_more": "Learn new buttons",
-          "relearn": "Learn a button again",
           "rename": "Rename buttons",
           "delete": "Delete buttons",
           "settings": "Change emitter or receiver"
-        }
-      },
-      "command_name": {
-        "title": "Learn a button",
-        "description": "Which button on the remote do you want to learn next? After you select **Next**, you have 30 seconds to press it.\n\nLearned so far: {learned}.\n\nLeave the name empty and select **Next** when you are done.",
-        "data": {
-          "name": "Button name"
-        },
-        "data_description": {
-          "name": "For example, Power, Volume up or HDMI 1."
-        }
-      },
-      "review": {
-        "title": "Check the button",
-        "description": "**{name}**\n\n{summary}\n\n{notes}",
-        "menu_options": {
-          "test": "Send it now to test",
-          "save_next": "Save and learn the next button",
-          "save_finish": "Save and finish",
-          "retry": "Learn it again"
-        }
-      },
-      "relearn": {
-        "title": "Learn a button again",
-        "description": "The button keeps its name and entity. Only the signal is replaced.",
-        "data": {
-          "command": "Button"
         }
       },
       "rename": {
@@ -241,127 +74,9 @@
           "emitter_entity_id": "Infrared emitter",
           "receiver_entity_id": "Infrared receiver"
         }
-      },
-      "buttons": {
-        "title": "Pick the buttons",
-        "description": "{image}\n\nTick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nYou can add other buttons with your own names at the end.",
-        "sections": {
-          "power": {
-            "name": "Power",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "volume": {
-            "name": "Volume",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "channels": {
-            "name": "Channels",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "inputs": {
-            "name": "Inputs",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "playback": {
-            "name": "Playback",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "navigation": {
-            "name": "Navigation",
-            "data": {
-              "buttons": "Buttons"
-            }
-          },
-          "controls": {
-            "name": "Controls",
-            "data": {
-              "buttons": "Buttons"
-            }
-          }
-        }
-      },
-      "capture_missed": {
-        "title": "Nothing received",
-        "description": "{image}\n\nNothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
-        "menu_options": {
-          "capture_retry": "Try again",
-          "capture_skip": "Skip this button",
-          "capture_stop": "Stop here and keep what was learned"
-        },
-        "menu_option_descriptions": {
-          "capture_retry": "Wait for {name} again.",
-          "capture_skip": "Leave it out. You can add it later.",
-          "capture_stop": "Skip the remaining buttons too."
-        }
-      },
-      "capture_duplicate": {
-        "title": "Same as another button",
-        "description": "{image}\n\nWhat was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
-        "menu_options": {
-          "capture_retry": "Press it again",
-          "capture_accept": "Keep it anyway",
-          "capture_skip": "Skip this button"
-        },
-        "menu_option_descriptions": {
-          "capture_retry": "Wait for {name} again.",
-          "capture_accept": "Some remotes do send the same signal for two buttons.",
-          "capture_skip": "Leave it out. You can add it later."
-        }
-      },
-      "ready": {
-        "title": "Buttons",
-        "description": "{image}\n\n**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
-        "menu_options": {
-          "ready_test": "Send a button to test it",
-          "ready_relearn": "Learn a button again",
-          "ready_more": "Add more of the suggested buttons",
-          "ready_custom": "Add buttons with your own names",
-          "ready_finish": "Save and close"
-        },
-        "menu_option_descriptions": {
-          "ready_test": "Send one learned button through the emitter.",
-          "ready_relearn": "Press a button again if it was learned wrong.",
-          "ready_more": "Pick from the buttons you didn't tick.",
-          "ready_custom": "For buttons that aren't in the list.",
-          "ready_finish": "Save the changes."
-        }
-      },
-      "ready_test": {
-        "title": "Send a button",
-        "data": {
-          "button": "Button"
-        }
-      },
-      "ready_relearn": {
-        "title": "Learn a button again",
-        "description": "Press it on the remote when asked. It keeps its name.",
-        "data": {
-          "button": "Button"
-        }
-      },
-      "capture": {
-        "title": "Press the buttons"
-      },
-      "capture_next": {
-        "title": "Press the buttons"
       }
     },
-    "progress": {
-      "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds.",
-      "press_button": "{image}\n\n**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself."
-    },
     "error": {
-      "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
       "name_exists": "This remote already has a button with this name.",
       "name_empty": "Each button needs a name."
     }

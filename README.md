@@ -40,28 +40,22 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 2. Select **Custom infrared remote**.
 3. Pick what the remote controls: **TV**, **Projector**, **Speakers or AV receiver**, **Fan**, **Blinds or curtains**, **Projector screen** or **Something else**.
 4. Enter a name, for example, Living room TV, and select the infrared emitter and the infrared receiver.
+5. Select **Learn the buttons**.
 
 ### Learn buttons
 
-For every type except **Something else**:
+The learning screen lists the common buttons for your type of device, one per row, with one row highlighted.
 
-1. Tick the buttons your remote has. The most common ones are already ticked.
-2. Press them on your remote when asked, one after another. As soon as a button is received, the next one comes up. If nothing arrives within 20 seconds, or a button sends the same signal as one you already pressed, the wizard stops and asks what to do.
-3. When you're done, you can send a button to test it, learn a button again, add more of the suggested buttons, or add buttons with your own names.
+1. Point your remote at the receiver and press the highlighted button. As soon as it's received, the next row is highlighted.
+2. If your remote doesn't have a button, select **Skip**, or select the crossed-out eye to hide it. Less common buttons start hidden: select the eye on a hidden row to learn it.
+3. To add buttons that aren't in the list, enter a name under **Your own buttons**, select **Learn** and press the button.
+4. Select **Done**.
 
-The device then works like any other of its type: a TV, projector or speaker becomes a media player, a fan becomes a fan, and blinds or a projector screen become a cover. Buttons the device type can't use, such as Channel up, become button entities on the same device.
+If a press sends the same signal as a button you already learned, the row says so: press the right button, or keep it anyway.
 
-For **Something else**, you name each button yourself and get a list of buttons:
+To come back later, to relearn a button, test one, show a hidden one or add your own, open the device and select **Visit**. **Configure** on the integration lets you rename or delete buttons and change the emitter or receiver.
 
-1. Enter the name of a button, for example, Power, and select **Next**.
-2. Within 30 seconds, point your remote at the receiver and press that button.
-3. Check what was received, then save it and learn the next button, or finish.
-
-To finish, leave the button name empty and select **Next**.
-
-### Manage buttons
-
-Open the remote on the integration page and select **Configure**. From there you can learn new buttons, learn a button again, rename buttons, delete buttons, or change the emitter or receiver. Renaming or learning a button again keeps its entity ID, so your automations keep working.
+The device then works like any other of its type: a TV, projector or speaker becomes a media player, a fan becomes a fan, and blinds or a projector screen become a cover. Buttons the device type can't use, such as Channel up, become button entities on the same device. **Something else** gives you a list of buttons.
 
 ### Use in automations
 
@@ -99,6 +93,7 @@ actions:
 
 - Holding a button fires one event, not one per repeat.
 - Commands that Home Assistant sends through the same emitter are ignored for half a second, so the receiver hearing its own emitter does not count as a press.
+- While the learning screen is open, no events fire, so learning buttons doesn't set off automations.
 - To stop listening, disable the **Remote button** entity in its settings.
 
 ## How it works
