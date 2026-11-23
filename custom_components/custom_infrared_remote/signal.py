@@ -25,6 +25,7 @@ from .const import (
 )
 
 DATA_LAST_SENT = f"{DOMAIN}_last_sent"
+DATA_LEARNING = f"{DOMAIN}_learning"
 
 # One NEC frame: leader pair + 32 bit pairs + end pulse
 NEC_FRAME_LENGTH = 67
@@ -191,6 +192,8 @@ async def async_learn_signal(
             future.set_result(signal)
 
     unsubscribe = async_subscribe_receiver(hass, receiver_entity_id, _async_on_signal)
+    learning: dict[str, int] = hass.data.setdefault(DATA_LEARNING, {})
+    learning[receiver_entity_id] = learning.get(receiver_entity_id, 0) + 1
     try:
         async with asyncio.timeout(timeout):
             return LearnedSignal.from_received(await future)
@@ -198,3 +201,15 @@ async def async_learn_signal(
         return None
     finally:
         unsubscribe()
+        learning[receiver_entity_id] -= 1
+        if not learning[receiver_entity_id]:
+            del learning[receiver_entity_id]
+
+
+@callback
+def async_is_learning(hass: HomeAssistant, receiver_entity_id: str) -> bool:
+    """Return True while a flow is waiting for a button on this receiver.
+
+    Buttons pressed to teach a remote shouldn't fire its event entity.
+    """
+    return receiver_entity_id in hass.data.get(DATA_LEARNING, {})

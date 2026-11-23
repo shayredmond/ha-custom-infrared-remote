@@ -45,10 +45,10 @@ from .const import (
     CONF_COMMANDS,
     CONF_DEVICE_TYPE,
     CONF_EMITTER,
+    CONF_HIDDEN_ROLES,
     CONF_RECEIVER,
     DOMAIN,
 )
-from .illustrations import async_register_view
 from .signal import (
     LearnedCommand,
     LearnedSignal,
@@ -315,6 +315,7 @@ class LearnedRemoteConfigFlow(
     def __init__(self) -> None:
         """Initialize the flow."""
         self._commands = []
+        self._hidden_roles = []
         self._device_type = None
 
     @staticmethod
@@ -333,11 +334,14 @@ class LearnedRemoteConfigFlow(
             return self.async_abort(reason="no_emitters")
         if not async_get_receivers(self.hass):
             return self.async_abort(reason="no_receivers")
-        async_register_view(self.hass)
         return self.async_show_menu(step_id="user", menu_options=list(TEMPLATES))
 
     async def _async_pick_type(self, device_type: str) -> ConfigFlowResult:
         self._device_type = device_type
+        # Less common buttons start unticked
+        self._hidden_roles = [
+            r.key for r in get_template(device_type).roles if not r.default
+        ]
         return await self.async_step_details()
 
     async def async_step_tv(self, user_input: Any = None) -> ConfigFlowResult:
@@ -411,7 +415,10 @@ class LearnedRemoteConfigFlow(
                 CONF_RECEIVER: self._receiver,
                 CONF_DEVICE_TYPE: self._device_type,
             },
-            options={CONF_COMMANDS: self._commands},
+            options={
+                CONF_COMMANDS: self._commands,
+                CONF_HIDDEN_ROLES: self._hidden_roles,
+            },
         )
 
 
@@ -428,7 +435,7 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
         self._receiver = entry.data[CONF_RECEIVER]
         self._device_type = entry.data.get(CONF_DEVICE_TYPE)
         self._commands = list(entry.options.get(CONF_COMMANDS, []))
-        async_register_view(self.hass)
+        self._hidden_roles = list(entry.options.get(CONF_HIDDEN_ROLES, []))
 
         options = ["learn_more"]
         if self._commands:
@@ -564,4 +571,10 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
 
     @override
     async def _async_finish(self) -> ConfigFlowResult:
-        return self.async_create_entry(data={CONF_COMMANDS: self._commands})
+        return self.async_create_entry(
+            data={
+                **self.config_entry.options,
+                CONF_COMMANDS: self._commands,
+                CONF_HIDDEN_ROLES: self._hidden_roles,
+            }
+        )

@@ -58,7 +58,7 @@
       },
       "buttons": {
         "title": "Pick the buttons",
-        "description": "{image}\n\nTick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nYou can add other buttons with your own names at the end.",
+        "description": "Tick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nButtons you untick aren't learned and stay unticked next time. You can add other buttons with your own names at the end.",
         "sections": {
           "power": {
             "name": "Power",
@@ -106,7 +106,7 @@
       },
       "capture_missed": {
         "title": "Nothing received",
-        "description": "{image}\n\nNothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
+        "description": "Nothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
         "menu_options": {
           "capture_retry": "Try again",
           "capture_skip": "Skip this button",
@@ -120,7 +120,7 @@
       },
       "capture_duplicate": {
         "title": "Same as another button",
-        "description": "{image}\n\nWhat was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
+        "description": "What was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
         "menu_options": {
           "capture_retry": "Press it again",
           "capture_accept": "Keep it anyway",
@@ -134,7 +134,7 @@
       },
       "ready": {
         "title": "Your device is ready",
-        "description": "{image}\n\n**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
+        "description": "**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
         "menu_options": {
           "ready_test": "Send a button to test it",
           "ready_relearn": "Learn a button again",
@@ -172,7 +172,7 @@
     },
     "progress": {
       "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds.",
-      "press_button": "{image}\n\n**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself."
+      "press_button": "**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself."
     },
     "error": {
       "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",
@@ -244,7 +244,7 @@
       },
       "buttons": {
         "title": "Pick the buttons",
-        "description": "{image}\n\nTick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nYou can add other buttons with your own names at the end.",
+        "description": "Tick the buttons on your remote. Next, you press them one after another: as soon as one is received, the next one comes up. You have {timeout} seconds for each.\n\nButtons you untick aren't learned and stay unticked next time. You can add other buttons with your own names at the end.",
         "sections": {
           "power": {
             "name": "Power",
@@ -292,7 +292,7 @@
       },
       "capture_missed": {
         "title": "Nothing received",
-        "description": "{image}\n\nNothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
+        "description": "Nothing arrived for **{name}** in {timeout} seconds. Point the remote at the receiver from close by.",
         "menu_options": {
           "capture_retry": "Try again",
           "capture_skip": "Skip this button",
@@ -306,7 +306,7 @@
       },
       "capture_duplicate": {
         "title": "Same as another button",
-        "description": "{image}\n\nWhat was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
+        "description": "What was received for **{name}** is the same as **{duplicate}**. You may have pressed the wrong button.",
         "menu_options": {
           "capture_retry": "Press it again",
           "capture_accept": "Keep it anyway",
@@ -320,7 +320,7 @@
       },
       "ready": {
         "title": "Buttons",
-        "description": "{image}\n\n**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
+        "description": "**{remote}** controls: {controls}.\n\nExtra buttons: {buttons}.\n\n{note}",
         "menu_options": {
           "ready_test": "Send a button to test it",
           "ready_relearn": "Learn a button again",
@@ -358,7 +358,7 @@
     },
     "progress": {
       "wait_for_signal": "Point your remote at the receiver and press **{name}**. Waiting for 30 seconds.",
-      "press_button": "{image}\n\n**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself."
+      "press_button": "**{position} of {total}: press {name}**\n\nPoint your remote at the receiver and press **{name}**. The next button comes up by itself."
     },
     "error": {
       "no_signal": "Nothing was received in 30 seconds. Point the remote at the receiver from close by and try again.",

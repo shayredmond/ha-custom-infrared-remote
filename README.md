@@ -45,7 +45,7 @@ Home Assistant Connect IRF-2, ESPHome, Broadlink, MQTT and ZHA devices can provi
 
 For every type except **Something else**:
 
-1. Tick the buttons your remote has. The most common ones are already ticked.
+1. Tick the buttons your remote has. The most common ones are already ticked. Buttons you untick aren't learned, and stay unticked when you learn more later.
 2. Press them on your remote when asked, one after another. As soon as a button is received, the next one comes up. If nothing arrives within 20 seconds, or a button sends the same signal as one you already pressed, the wizard stops and asks what to do.
 3. When you're done, you can send a button to test it, learn a button again, add more of the suggested buttons, or add buttons with your own names.
 
@@ -99,6 +99,7 @@ actions:
 
 - Holding a button fires one event, not one per repeat.
 - Commands that Home Assistant sends through the same emitter are ignored for half a second, so the receiver hearing its own emitter does not count as a press.
+- While you're learning buttons on that receiver, presses don't fire events.
 - To stop listening, disable the **Remote button** entity in its settings.
 
 ## How it works

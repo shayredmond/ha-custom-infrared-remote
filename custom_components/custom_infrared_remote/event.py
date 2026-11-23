@@ -24,6 +24,7 @@ from .const import (
 )
 from .signal import (
     LearnedSignal,
+    async_is_learning,
     async_mark_sent,
     async_recently_sent,
     find_best_match,
@@ -86,6 +87,8 @@ class LearnedRemoteButtonEvent(InfraredReceiverConsumerEntity, EventEntity):
         if len(signal.timings) < MIN_TIMINGS:
             return
         if async_recently_sent(self.hass, self._emitter):
+            return
+        if async_is_learning(self.hass, self._infrared_receiver_entity_id):
             return
         cleaned = LearnedSignal.from_received(signal)
         if (command := find_best_match(cleaned.timings, self._commands)) is None:

@@ -38,3 +38,6 @@ CMD_ROLE: Final = "role"
 
 # How long the guided capture waits for each button before asking what to do
 CAPTURE_TIMEOUT: Final = 20
+
+# Suggested buttons the user chose not to learn ("don't learn it")
+CONF_HIDDEN_ROLES: Final = "hidden_roles"

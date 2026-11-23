@@ -72,10 +72,6 @@ async def _start_tv(hass: HomeAssistant, buttons: list[str]):
         },
     )
     assert result["step_id"] == "buttons"
-    assert (
-        "/api/custom_infrared_remote/remote/tv.svg?"
-        in (result["description_placeholders"]["image"])
-    )
     sections = result["data_schema"].schema
     assert [str(k) for k in sections] == [
         "power",
@@ -142,7 +138,6 @@ async def test_tv_wizard(
     assert result["step_id"] == "capture_duplicate"
     placeholders = result["description_placeholders"]
     assert (placeholders["name"], placeholders["duplicate"]) == ("Volume down", "Power")
-    assert "current=volume_down&waiting=0&done=power,volume_up" in placeholders["image"]
     result = await hass.config_entries.flow.async_configure(
         flow_id, {"next_step_id": "capture_retry"}
     )
@@ -201,6 +196,12 @@ async def test_tv_wizard(
     assert result["data"][CONF_DEVICE_TYPE] == "tv"
     roles = [c.get("role") for c in result["options"]["commands"]]
     assert roles == ["power", "volume_up", "volume_down", "channel_up", "source_hdmi_1"]
+    # Unticked buttons are hidden; Mute was skipped, so it is not
+    chosen = {"power", "volume_up", "volume_down", "mute", "channel_up"}
+    chosen.add("source_hdmi_1")
+    assert result["options"]["hidden_roles"] == [
+        r.key for r in get_template("tv").roles if r.key not in chosen
+    ]
     await hass.async_block_till_done()
 
     # One media player for the TV controls, a button only for Channel up
@@ -255,7 +256,11 @@ async def test_relearn_from_ready(
     assert (power["id"], power["name"], power["timings"]) == (power_id, "Power", POWER)
 
 
-def _entry(device_type: str, commands: dict[str, list[int]]) -> MockConfigEntry:
+def _entry(
+    device_type: str,
+    commands: dict[str, list[int]],
+    hidden: list[str] | None = None,
+) -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
         title="Thing",
@@ -275,7 +280,8 @@ def _entry(device_type: str, commands: dict[str, list[int]]) -> MockConfigEntry:
                     "modulation": 38000,
                 }
                 for role, timings in commands.items()
-            ]
+            ],
+            "hidden_roles": hidden or [],
         },
     )
 
@@ -419,8 +425,8 @@ async def test_options_learn_more_suggests_missing(
     mock_infrared_emitter_entity: MockInfraredEmitterEntity,
     mock_infrared_receiver_entity: MockInfraredReceiverEntity,
 ) -> None:
-    """Learning more on a TV offers the suggested buttons not learned yet."""
-    entry = _entry("tv", {"power": POWER})
+    """Learning more offers the buttons not learned yet; hidden ones unticked."""
+    entry = _entry("tv", {"power": POWER}, hidden=["power_off", "menu"])
     await _setup(hass, entry)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
@@ -431,44 +437,62 @@ async def test_options_learn_more_suggests_missing(
     power_key, power_selector = next(iter(sections["power"].schema.schema.items()))
     values = [o["value"] for o in power_selector.config["options"]]
     assert values == ["power_on", "power_off"]
-    # Nothing ticked by default once the device has buttons
-    assert power_key.default() == []
+    assert power_key.default() == ["power_on"]
+
+    # Untick Mute, tick Menu: Mute becomes hidden, Menu doesn't any more
+    template = get_template("tv")
+    chosen = [r.key for r in template.roles if r.key not in {"power", "mute"}]
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for key in chosen:
+        grouped.setdefault(template.role(key).group, {"buttons": []})["buttons"].append(
+            key
+        )
+    flow_id = result["flow_id"]
+    result = await hass.config_entries.options.async_configure(flow_id, grouped)
+    assert result["description_placeholders"]["name"] == "Power on"
+    flow = hass.config_entries.options._progress[flow_id]
+    assert flow._hidden_roles == ["mute"]
+    hass.config_entries.options.async_abort(flow_id)
 
 
-def test_remote_image() -> None:
-    """The drawn remote highlights the current button and ticks learned ones."""
-    from custom_components.custom_infrared_remote.illustrations import render_remote
-
-    svg = render_remote(
-        "tv",
-        current="volume_up",
-        done=frozenset({"power"}),
-        queued=frozenset({"power", "volume_up"}),
-        waiting=True,
+@pytest.mark.usefixtures("mock_infrared_emitter_entity")
+async def test_event_quiet_while_learning(
+    hass: HomeAssistant,
+    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
+) -> None:
+    """Pressing a learned button to teach the remote doesn't fire its event."""
+    receiver = mock_infrared_receiver_entity
+    entry = _entry("tv", {"power": POWER}, hidden=[])
+    await _setup(hass, entry)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    flow_id = result["flow_id"]
+    result = await hass.config_entries.options.async_configure(
+        flow_id, {"next_step_id": "learn_more"}
     )
-    assert svg.startswith("<svg")
-    assert svg.count("<animate") == 4  # pulse on the button plus three beams
-    assert "#2e9d4f" in svg  # Power learned
-    assert render_remote("tv", current="power").count("<animate") == 1
-    assert render_remote("generic") is None
-    assert render_remote("../etc") is None
+    groups = {r.group: {"buttons": []} for r in get_template("tv").roles}
+    groups["volume"]["buttons"] = ["mute"]
+    result = await hass.config_entries.options.async_configure(flow_id, groups)
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
 
+    receiver._handle_received_signal(InfraredReceivedSignal(POWER))
+    await _settle(hass)
+    assert hass.states.get("event.thing_remote_button").state == "unknown"
+    result = await hass.config_entries.options.async_configure(flow_id)
+    assert result["step_id"] == "capture_duplicate"
 
-async def test_remote_image_view(hass: HomeAssistant, hass_client_no_auth) -> None:
-    """The image is served without authentication, and only for known types."""
-    from homeassistant.setup import async_setup_component
-
-    from custom_components.custom_infrared_remote.illustrations import (
-        async_register_view,
+    result = await hass.config_entries.options.async_configure(
+        flow_id, {"next_step_id": "capture_skip"}
     )
-
-    assert await async_setup_component(hass, "http", {})
-    async_register_view(hass)
-    client = await hass_client_no_auth()
-    resp = await client.get(
-        "/api/custom_infrared_remote/remote/fan.svg?current=power&done=&queued=power"
+    result = await hass.config_entries.options.async_configure(
+        flow_id, {"next_step_id": "ready_finish"}
     )
-    assert resp.status == 200
-    assert resp.content_type == "image/svg+xml"
-    resp = await client.get("/api/custom_infrared_remote/remote/generic.svg")
-    assert resp.status == 404
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["hidden_roles"] == [
+        r.key for r in get_template("tv").roles if r.key not in {"power", "mute"}
+    ]
+    await hass.async_block_till_done()
+
+    receiver._handle_received_signal(InfraredReceivedSignal(POWER))
+    await _settle(hass)
+    state = hass.states.get("event.thing_remote_button")
+    assert state.attributes["event_type"] == "Power"

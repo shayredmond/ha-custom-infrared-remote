@@ -173,7 +173,7 @@ async def test_finish_without_commands(
     )
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["options"] == {"commands": []}
+    assert result["options"] == {"commands": [], "hidden_roles": []}
 
 
 async def test_no_signal(
