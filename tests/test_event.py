@@ -6,14 +6,12 @@ import pytest
 from homeassistant.components.infrared import InfraredReceivedSignal
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant.common import MockConfigEntry
 from pytest_homeassistant.components.infrared.common import (
     MockInfraredEmitterEntity,
     MockInfraredReceiverEntity,
 )
 
-from custom_components.custom_infrared_remote.const import CONF_LISTEN
 from custom_components.custom_infrared_remote.signal import (
     LearnedCommand,
     find_best_match,
@@ -181,43 +179,43 @@ async def test_closest_match_wins() -> None:
     assert find_best_match(base, commands)["name"] == "Near"
 
 
-async def test_listening_off(
+async def test_old_listen_off_is_ignored(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_infrared_emitter_entity: MockInfraredEmitterEntity,
     mock_infrared_receiver_entity: MockInfraredReceiverEntity,
-    entity_registry: er.EntityRegistry,
 ) -> None:
-    """With listening off there is no event entity, and a stale one is removed."""
+    """Entries saved with the old listen setting off still get the event entity."""
     mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, data={**mock_config_entry.data, "listen": False}
+    )
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
-    assert entity_registry.async_get(EVENT)
-
-    hass.config_entries.async_update_entry(
-        mock_config_entry, data={**mock_config_entry.data, CONF_LISTEN: False}
-    )
-    await hass.async_block_till_done()
-    assert entity_registry.async_get(EVENT) is None
-    assert hass.states.get(EVENT) is None
+    assert hass.states.get(EVENT)
 
 
-async def test_settings_toggle_listening(
+async def test_settings_drops_old_listen(
     hass: HomeAssistant, setup: MockConfigEntry
 ) -> None:
-    """Listening can be turned off in the settings step."""
+    """Saving settings removes the old listen key and has no listen field."""
+    hass.config_entries.async_update_entry(setup, data={**setup.data, "listen": False})
+    await hass.async_block_till_done()
     result = await hass.config_entries.options.async_init(setup.entry_id)
-    await hass.config_entries.options.async_configure(
+    result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"next_step_id": "settings"}
     )
-    result = await hass.config_entries.options.async_configure(
+    assert [str(k) for k in result["data_schema"].schema] == [
+        "emitter_entity_id",
+        "receiver_entity_id",
+    ]
+    await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
             "emitter_entity_id": setup.data["emitter_entity_id"],
             "receiver_entity_id": setup.data["receiver_entity_id"],
-            CONF_LISTEN: False,
         },
     )
     await hass.async_block_till_done()
-    assert setup.data[CONF_LISTEN] is False
-    assert hass.states.get(EVENT) is None
+    assert "listen" not in setup.data
+    assert hass.states.get(EVENT)

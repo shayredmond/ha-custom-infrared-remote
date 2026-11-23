@@ -23,9 +23,6 @@ DEFAULT_MODULATION: Final = 38000
 # Signals shorter than this are treated as noise (stray IR, sunlight, CFL flicker)
 MIN_TIMINGS: Final = 8
 
-# Listen for the physical remote and fire an event when a learned button is pressed
-CONF_LISTEN: Final = "listen"
-
 # Ignore matches this long after sending through the remote's emitter, so the
 # receiver hearing our own transmission does not look like a button press
 ECHO_WINDOW: Final = 0.5

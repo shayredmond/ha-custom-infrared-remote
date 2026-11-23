@@ -17,7 +17,6 @@ from .const import (
     CMD_NAME,
     CONF_COMMANDS,
     CONF_EMITTER,
-    CONF_LISTEN,
     CONF_RECEIVER,
     DOMAIN,
     MIN_TIMINGS,
@@ -33,8 +32,11 @@ from .signal import (
 
 
 def listens(entry: ConfigEntry) -> bool:
-    """Return True if this remote should have an event entity."""
-    return bool(entry.data.get(CONF_LISTEN, True) and entry.options.get(CONF_COMMANDS))
+    """Return True if this remote has buttons to listen for.
+
+    To stop listening, disable the event entity like any other entity.
+    """
+    return bool(entry.options.get(CONF_COMMANDS))
 
 
 async def async_setup_entry(
@@ -42,7 +44,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add the event entity when listening is on and there are buttons."""
+    """Add the event entity when there are buttons."""
     if listens(entry):
         async_add_entities([LearnedRemoteButtonEvent(entry)])
 

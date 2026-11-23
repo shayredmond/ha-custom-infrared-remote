@@ -80,7 +80,7 @@ actions:
 
 ### React to the original remote
 
-While listening is on, the receiver keeps listening after setup. When it hears one of the learned buttons from your original remote, the **Remote button** event entity fires with the button name. Use it to trigger automations, for example to dim the lights when you press Power on the TV remote:
+The receiver keeps listening after setup. When it hears one of the learned buttons from your original remote, the **Remote button** event entity fires with the button name. Use it to trigger automations, for example to dim the lights when you press Power on the TV remote:
 
 ```yaml
 triggers:
@@ -99,7 +99,7 @@ actions:
 
 - Holding a button fires one event, not one per repeat.
 - Commands that Home Assistant sends through the same emitter are ignored for half a second, so the receiver hearing its own emitter does not count as a press.
-- To turn listening off, open the remote's **Configure** menu and select **Change emitter, receiver or listening**.
+- To stop listening, disable the **Remote button** entity in its settings.
 
 ## How it works
 

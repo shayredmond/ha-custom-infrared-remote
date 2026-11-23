@@ -28,7 +28,6 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
-    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     SelectOptionDict,
@@ -46,7 +45,6 @@ from .const import (
     CONF_COMMANDS,
     CONF_DEVICE_TYPE,
     CONF_EMITTER,
-    CONF_LISTEN,
     CONF_RECEIVER,
     DOMAIN,
 )
@@ -544,22 +542,23 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
     ) -> ConfigFlowResult:
         """Change the emitter or the receiver."""
         if user_input is not None:
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data={**self.config_entry.data, **user_input}
-            )
+            data = {**self.config_entry.data, **user_input}
+            # Listening used to be a setting here; the event entity is now
+            # always created and can be disabled like any other entity
+            data.pop("listen", None)
+            self.hass.config_entries.async_update_entry(self.config_entry, data=data)
             return await self._async_finish()
 
         schema = probatio.Schema(
             {
                 probatio.Required(CONF_EMITTER): _emitter_selector(self.hass),
                 probatio.Required(CONF_RECEIVER): _receiver_selector(self.hass),
-                probatio.Required(CONF_LISTEN): BooleanSelector(),
             }
         )
         return self.async_show_form(
             step_id="settings",
             data_schema=self.add_suggested_values_to_schema(
-                schema, {CONF_LISTEN: True, **self.config_entry.data}
+                schema, dict(self.config_entry.data)
             ),
         )
 

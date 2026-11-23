@@ -194,7 +194,7 @@
           "relearn": "Learn a button again",
           "rename": "Rename buttons",
           "delete": "Delete buttons",
-          "settings": "Change emitter, receiver or listening"
+          "settings": "Change emitter or receiver"
         }
       },
       "command_name": {
@@ -236,14 +236,10 @@
         }
       },
       "settings": {
-        "title": "Emitter, receiver and listening",
+        "title": "Emitter and receiver",
         "data": {
           "emitter_entity_id": "Infrared emitter",
-          "receiver_entity_id": "Infrared receiver",
-          "listen": "Listen for button presses"
-        },
-        "data_description": {
-          "listen": "Fires an event when the receiver hears one of the learned buttons from the original remote. Use it to trigger automations."
+          "receiver_entity_id": "Infrared receiver"
         }
       },
       "buttons": {
