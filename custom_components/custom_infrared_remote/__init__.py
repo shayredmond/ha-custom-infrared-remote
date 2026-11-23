@@ -8,7 +8,7 @@ from homeassistant.helpers import entity_registry as er
 from .const import CMD_ID, CONF_COMMANDS
 from .event import listens
 
-PLATFORMS: list[Platform] = [Platform.REMOTE, Platform.BUTTON, Platform.EVENT]
+PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.EVENT]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -31,8 +31,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 @callback
 def _async_remove_deleted_buttons(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Remove entities of commands that were deleted, so none linger unavailable."""
-    keep = {entry.entry_id} | {
+    """Remove entities that no longer exist, so none linger unavailable."""
+    # The remote entity (unique ID = entry ID) was dropped in 0.3.0; it is not
+    # in this set, so installs that had one get it removed here.
+    keep = {
         f"{entry.entry_id}_{command[CMD_ID]}"
         for command in entry.options.get(CONF_COMMANDS, [])
     }

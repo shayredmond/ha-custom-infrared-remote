@@ -1,14 +1,10 @@
-"""Test managing commands and the remote entity."""
-
-import asyncio
+"""Test the buttons and managing commands."""
 
 import pytest
 from homeassistant.components.infrared import InfraredReceivedSignal
-from homeassistant.components.remote import DOMAIN as REMOTE_DOMAIN
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant.common import MockConfigEntry
 from pytest_homeassistant.components.infrared.common import (
@@ -16,9 +12,7 @@ from pytest_homeassistant.components.infrared.common import (
     MockInfraredReceiverEntity,
 )
 
-from .conftest import POWER, RAW, VOL_UP, nec
-
-REMOTE = "remote.living_room_tv"
+from .conftest import RAW, VOL_UP, nec
 
 
 @pytest.fixture
@@ -38,26 +32,32 @@ async def setup(
 async def test_entities(
     hass: HomeAssistant, setup: MockConfigEntry, entity_registry: er.EntityRegistry
 ) -> None:
-    """The remote lists its buttons and is hidden by default."""
-    state = hass.states.get(REMOTE)
-    assert state.attributes["commands"] == ["Power", "Volume up"]
+    """There is a button per command and no remote entity."""
     assert hass.states.get("button.living_room_tv_power")
-    assert (
-        entity_registry.async_get(REMOTE).hidden_by is er.RegistryEntryHider.INTEGRATION
-    )
-    assert not entity_registry.async_get("button.living_room_tv_power").hidden_by
+    assert hass.states.get("button.living_room_tv_volume_up")
+    assert not hass.states.async_entity_ids("remote")
 
 
-@pytest.mark.parametrize("service", ["turn_on", "turn_off"])
-async def test_on_off_not_supported(
-    hass: HomeAssistant, setup: MockConfigEntry, service: str
+async def test_old_remote_entity_removed(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
+    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
+    entity_registry: er.EntityRegistry,
 ) -> None:
-    """On and off give a clear error instead of failing."""
-    with pytest.raises(ServiceValidationError) as err:
-        await hass.services.async_call(
-            REMOTE_DOMAIN, service, {ATTR_ENTITY_ID: REMOTE}, blocking=True
-        )
-    assert err.value.translation_key == "on_off_not_supported"
+    """A remote entity left over from an earlier version is removed."""
+    mock_config_entry.add_to_hass(hass)
+    entity_registry.async_get_or_create(
+        "remote",
+        "custom_infrared_remote",
+        mock_config_entry.entry_id,
+        config_entry=mock_config_entry,
+        suggested_object_id="living_room_tv",
+    )
+    assert entity_registry.async_get("remote.living_room_tv")
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert entity_registry.async_get("remote.living_room_tv") is None
 
 
 async def test_button_press(
@@ -75,93 +75,6 @@ async def test_button_press(
     assert (
         mock_infrared_emitter_entity.send_command_calls[0].get_raw_timings() == VOL_UP
     )
-
-
-async def test_send_command(
-    hass: HomeAssistant,
-    setup: MockConfigEntry,
-    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
-) -> None:
-    """remote.send_command sends by name, case does not matter, with repeats."""
-    await hass.services.async_call(
-        REMOTE_DOMAIN,
-        "send_command",
-        {
-            ATTR_ENTITY_ID: REMOTE,
-            "command": ["power", "Volume up"],
-            "num_repeats": 2,
-            "delay_secs": 0,
-        },
-        blocking=True,
-    )
-    sent = [
-        c.get_raw_timings() for c in mock_infrared_emitter_entity.send_command_calls
-    ]
-    assert sent == [POWER, VOL_UP, POWER, VOL_UP]
-
-
-async def test_send_unknown_command(
-    hass: HomeAssistant,
-    setup: MockConfigEntry,
-    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
-) -> None:
-    """A typo sends nothing and says which buttons exist."""
-    with pytest.raises(ServiceValidationError) as err:
-        await hass.services.async_call(
-            REMOTE_DOMAIN,
-            "send_command",
-            {ATTR_ENTITY_ID: REMOTE, "command": ["Power", "Mute"]},
-            blocking=True,
-        )
-    assert err.value.translation_placeholders == {
-        "command": "Mute",
-        "commands": "Power, Volume up",
-    }
-    assert mock_infrared_emitter_entity.send_command_calls == []
-
-
-async def test_learn_command_service(
-    hass: HomeAssistant,
-    setup: MockConfigEntry,
-    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
-) -> None:
-    """remote.learn_command adds new buttons and replaces existing ones."""
-    call = hass.async_create_task(
-        hass.services.async_call(
-            REMOTE_DOMAIN,
-            "learn_command",
-            {ATTR_ENTITY_ID: REMOTE, "command": ["Mute", "Power"]},
-            blocking=True,
-        )
-    )
-    for timings in (RAW, nec(0x09)):
-        await asyncio.sleep(0.01)
-        mock_infrared_receiver_entity._handle_received_signal(
-            InfraredReceivedSignal(timings)
-        )
-    await call
-    await hass.async_block_till_done()
-
-    commands = setup.options["commands"]
-    assert [c["name"] for c in commands] == ["Power", "Volume up", "Mute"]
-    assert commands[0]["id"] == "p"
-    assert commands[0]["timings"] == nec(0x09)
-    assert hass.states.get("button.living_room_tv_mute")
-
-
-async def test_delete_command_service(
-    hass: HomeAssistant, setup: MockConfigEntry
-) -> None:
-    """remote.delete_command removes buttons."""
-    await hass.services.async_call(
-        REMOTE_DOMAIN,
-        "delete_command",
-        {ATTR_ENTITY_ID: REMOTE, "command": ["power"]},
-        blocking=True,
-    )
-    await hass.async_block_till_done()
-    assert [c["name"] for c in setup.options["commands"]] == ["Volume up"]
-    assert hass.states.get("button.living_room_tv_power") is None
 
 
 async def test_options_menu(hass: HomeAssistant, setup: MockConfigEntry) -> None:
@@ -263,7 +176,10 @@ async def test_options_rename(
     await hass.async_block_till_done()
     state = hass.states.get("button.living_room_tv_power")
     assert state.name == "Living room TV On/off"
-    assert hass.states.get(REMOTE).attributes["commands"] == ["On/off", "Louder"]
+    assert (
+        hass.states.get("button.living_room_tv_volume_up").name
+        == "Living room TV Louder"
+    )
 
 
 async def test_options_delete(hass: HomeAssistant, setup: MockConfigEntry) -> None:

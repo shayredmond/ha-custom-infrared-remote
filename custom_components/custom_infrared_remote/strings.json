@@ -121,20 +121,6 @@
       "name_empty": "Each button needs a name."
     }
   },
-  "exceptions": {
-    "unknown_command": {
-      "message": "This remote has no button called {command}. Its buttons are: {commands}."
-    },
-    "no_command_name": {
-      "message": "Give the name of the button to learn."
-    },
-    "no_signal": {
-      "message": "Nothing was received for {command}."
-    },
-    "on_off_not_supported": {
-      "message": "This remote can't turn the device on or off. Press one of its buttons instead, or use remote.send_command."
-    }
-  },
   "entity": {
     "event": {
       "button_pressed": {

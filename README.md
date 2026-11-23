@@ -2,7 +2,7 @@
 
 [![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=shayredmond&repository=ha-custom-infrared-remote&category=integration)
 
-Teach Home Assistant the buttons of any infrared remote. Each remote becomes one device, with a button entity for every command and a remote entity you can use in automations.
+Teach Home Assistant the buttons of any infrared remote. Each remote becomes one device, with a button entity for every command and an event entity that fires when you use the original remote.
 
 > [!WARNING]
 > This is an example integration for testing purposes. It is not production ready: expect breaking changes, and don't rely on it for anything important. Please report what you find.
@@ -55,21 +55,18 @@ Open the remote on the integration page and select **Configure**. From there you
 
 ### Use in automations
 
-Press a button entity, or send commands by name with the remote entity. The remote entity is hidden by default, because the buttons are the controls. It still works in automations, and you can show it in its entity settings.
+Press a button entity. To send several in a row, add a short delay between them:
 
 ```yaml
-action: remote.send_command
-target:
-  entity_id: remote.living_room_tv
-data:
-  command:
-    - Power
-    - HDMI 1
-  num_repeats: 1
-  delay_secs: 0.4
+actions:
+  - action: button.press
+    target:
+      entity_id: button.living_room_tv_power
+  - delay: 0.4
+  - action: button.press
+    target:
+      entity_id: button.living_room_tv_hdmi_1
 ```
-
-`remote.learn_command` and `remote.delete_command` also work. The names of all learned buttons are listed in the `commands` attribute of the remote entity.
 
 ### React to the original remote
 
@@ -109,7 +106,7 @@ Most receivers do not report the carrier frequency. In that case, the integratio
 
 ## Known limitations
 
-- The remote entity can't turn the device on or off, because infrared only goes one way. Learn Power on and Power off as buttons instead.
+- There is no on or off state, because infrared only goes one way. Learn Power on and Power off as separate buttons if your remote has them.
 - Only NEC codes are recognized. Other codes are stored and sent as recorded.
 - If your remote changes its code on every press, a learned button may only work every other time.
 - Listening uses the same matching as learning, so two learned buttons that send the same code both fire.

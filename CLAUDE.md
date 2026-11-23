@@ -7,7 +7,6 @@ Home Assistant custom integration "Custom infrared remote" (domain `custom_infra
 - `custom_components/custom_infrared_remote/`
   - `config_flow.py`: `LearnLoopMixin` holds the learn loop (command_name -> learn progress -> learn_done -> review menu), shared by the config flow (create remote) and the options flow (manage: learn_more, relearn, rename, delete, settings).
   - `signal.py`: `LearnedSignal` (noise filter, NEC decode, held-repeat trim, summary), `signals_match` and `find_duplicate`, `async_learn_signal`, `LearnedCommand`.
-  - `remote.py`: remote entity with send, learn and delete commands by name.
   - `event.py`: `LearnedRemoteButtonEvent` (InfraredReceiverConsumerEntity + EventEntity) fires the button name when the receiver hears a learned button. Closest match wins (`find_best_match`), repeats of the same button within `REPEAT_WINDOW` collapse, and matches within `ECHO_WINDOW` of any send through the remote's emitter are ignored (`async_mark_sent` before and after our sends, plus a state listener on the emitter for other integrations' sends). Only created when listening is on (`entry.data["listen"]`, default true) and there are commands.
   - `button.py`: one button per command. `entity.py`: shared device info and emitter binding.
   - `__init__.py`: forwards platforms, reloads on update, removes registry entries of deleted commands.
@@ -17,7 +16,7 @@ Home Assistant custom integration "Custom infrared remote" (domain `custom_infra
 
 ## Data model
 
-One config entry is one remote. `entry.data` = emitter and receiver entity IDs. `entry.options["commands"]` = list of `{id, name, timings, modulation}`. Button unique ID = `{entry_id}_{command id}`; event entity `{entry_id}_event`; remote `{entry_id}`. The command id is stable across rename and relearn. That is deliberate: it is why this uses options and not one config subentry per command (HA 2026.11 lets a device belong to one subentry only, so per-command subentries can't share a device).
+One config entry is one remote. `entry.data` = emitter and receiver entity IDs. `entry.options["commands"]` = list of `{id, name, timings, modulation}`. Button unique ID = `{entry_id}_{command id}`; event entity `{entry_id}_event`. There is no remote entity: decided 2026-11-23 (v0.3.0), because its on/off controls mean nothing for IR and buttons cover sending. `_async_remove_deleted_buttons` removes the old `{entry_id}` remote entity on upgrade; don't add `remote.py` back without asking. The command id is stable across rename and relearn. That is deliberate: it is why this uses options and not one config subentry per command (HA 2026.11 lets a device belong to one subentry only, so per-command subentries can't share a device).
 
 ## Gotchas
 
@@ -33,6 +32,5 @@ All user-facing strings follow `~/src/NabuCasa/WRITING_STYLE.md`: no em dashes, 
 
 ## Open questions
 
-- Remote on/off: decided 2026-11-19 to hide the remote entity by default and reject turn_on/turn_off with a clear error. Mapping on/off to learned Power buttons was considered and not done.
 - Generic pulse-distance decoder for non-NEC remotes (Shay's test remote sends 21-bit codes with a ~2.2 ms leader).
 - Carrier is assumed to be 38 kHz when the receiver doesn't report it.
