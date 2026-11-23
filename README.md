@@ -51,6 +51,10 @@ For every type except **Something else**:
 
 The device then works like any other of its type: a TV, projector or speaker becomes a media player, a fan becomes a fan, and blinds or a projector screen become a cover. Buttons the device type can't use, such as Channel up, become button entities on the same device.
 
+For a fan, Speed up and Speed down together become a speed slider. Enter how many speeds the fan has when you create it (you can change it later under **Configure** > **Change settings**). Setting a speed presses Speed up or Speed down as many times as needed; the first time, it goes down to the slowest speed first, because it doesn't know where the fan is.
+
+The receiver also keeps the device's state up to date when you use the original remote: Power, Speed up and down, and Oscillate for a fan, and Power and inputs for a TV, projector or speakers. Blinds and screens can stop anywhere, so their position stays unknown.
+
 For **Something else**, you name each button yourself and get a list of buttons:
 
 1. Enter the name of a button, for example, Power, and select **Next**.

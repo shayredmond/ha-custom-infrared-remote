@@ -1,12 +1,14 @@
 """Media player for TVs, projectors and speakers learned with the wizard."""
 
+from typing import override
+
 from homeassistant.components.media_player import (
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -127,6 +129,24 @@ class LearnedMediaPlayer(LearnedDeviceEntity, MediaPlayerEntity, RestoreEntity):
     async def async_media_previous_track(self) -> None:
         """Previous."""
         await self._send_role("previous")
+
+    @callback
+    @override
+    def _async_heard(self, role: str) -> bool:
+        """Follow the original remote: power and inputs."""
+        if role == "power":
+            self._attr_state = (
+                MediaPlayerState.OFF if self._is_on() else MediaPlayerState.ON
+            )
+        elif role in ("power_on", "power_off"):
+            self._attr_state = (
+                MediaPlayerState.ON if role == "power_on" else MediaPlayerState.OFF
+            )
+        elif role.startswith(SOURCE_PREFIX):
+            self._attr_source = self._role_names[role]
+        else:
+            return False
+        return True
 
     async def async_select_source(self, source: str) -> None:
         """Switch input."""

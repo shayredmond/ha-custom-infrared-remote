@@ -7,6 +7,7 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import CMD_ID
 from .event import listens
+from .presses import PressListener
 from .templates import button_commands, entry_template, has_main_entity
 
 BASE_PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.EVENT]
@@ -22,6 +23,7 @@ def _platforms(entry: ConfigEntry) -> list[Platform]:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a remote from a config entry."""
     _async_remove_deleted_buttons(hass, entry)
+    entry.async_on_unload(PressListener(hass, entry).async_start())
     await hass.config_entries.async_forward_entry_setups(entry, _platforms(entry))
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True

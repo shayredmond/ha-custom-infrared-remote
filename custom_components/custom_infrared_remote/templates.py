@@ -47,6 +47,9 @@ class DeviceTemplate:
     roles: tuple[Role, ...] = ()
     # Roles the main entity uses. Other learned roles become buttons.
     mapped: frozenset[str] = field(default_factory=frozenset)
+    # Roles the main entity uses only when all of them are learned, such as
+    # speed up and speed down for a speed slider. Otherwise they are buttons.
+    mapped_together: frozenset[str] = field(default_factory=frozenset)
 
     def role(self, key: str) -> Role | None:
         """Return the role with this key."""
@@ -168,6 +171,7 @@ TEMPLATES: dict[str, DeviceTemplate] = {
             Role("timer", "Timer"),
         ),
         mapped=frozenset({"power", "power_on", "power_off", "oscillate"}),
+        mapped_together=frozenset({"speed_up", "speed_down"}),
     ),
     DEVICE_BLINDS: DeviceTemplate(
         key=DEVICE_BLINDS,
@@ -212,23 +216,30 @@ def entry_template(entry: ConfigEntry) -> DeviceTemplate:
     return get_template(entry.data.get(CONF_DEVICE_TYPE))
 
 
+def _mapped(entry: ConfigEntry) -> frozenset[str]:
+    """Return the roles the main entity of this entry uses."""
+    template = entry_template(entry)
+    learned = {c.get(CMD_ROLE) for c in entry.options.get(CONF_COMMANDS, [])}
+    if template.mapped_together and template.mapped_together <= learned:
+        return template.mapped | template.mapped_together
+    return template.mapped
+
+
 def role_commands(entry: ConfigEntry) -> dict[str, dict[str, Any]]:
     """Return the learned commands that fill a role of the main entity."""
-    template = entry_template(entry)
+    mapped = _mapped(entry)
     return {
         c[CMD_ROLE]: c
         for c in entry.options.get(CONF_COMMANDS, [])
-        if c.get(CMD_ROLE) in template.mapped
+        if c.get(CMD_ROLE) in mapped
     }
 
 
 def button_commands(entry: ConfigEntry) -> list[dict[str, Any]]:
     """Return the learned commands that become button entities."""
-    template = entry_template(entry)
+    mapped = _mapped(entry)
     return [
-        c
-        for c in entry.options.get(CONF_COMMANDS, [])
-        if c.get(CMD_ROLE) not in template.mapped
+        c for c in entry.options.get(CONF_COMMANDS, []) if c.get(CMD_ROLE) not in mapped
     ]
 
 

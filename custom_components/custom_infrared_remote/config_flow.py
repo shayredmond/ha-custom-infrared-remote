@@ -30,6 +30,9 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -47,6 +50,8 @@ from .const import (
     CONF_EMITTER,
     CONF_HIDDEN_ROLES,
     CONF_RECEIVER,
+    CONF_SPEED_COUNT,
+    DEFAULT_SPEED_COUNT,
     DOMAIN,
 )
 from .signal import (
@@ -86,6 +91,25 @@ def _receiver_selector(hass: HomeAssistant) -> EntitySelector:
             domain=INFRARED_DOMAIN, include_entities=async_get_receivers(hass)
         )
     )
+
+
+def _speed_count_selector() -> NumberSelector:
+    return NumberSelector(
+        NumberSelectorConfig(min=1, max=20, step=1, mode=NumberSelectorMode.BOX)
+    )
+
+
+def _device_fields(device_type: str | None) -> dict[Any, Any]:
+    """Extra settings for some device types."""
+    if device_type == DEVICE_FAN:
+        return {probatio.Required(CONF_SPEED_COUNT): _speed_count_selector()}
+    return {}
+
+
+def _clean_settings(user_input: dict[str, Any]) -> dict[str, Any]:
+    if CONF_SPEED_COUNT in user_input:
+        return {**user_input, CONF_SPEED_COUNT: int(user_input[CONF_SPEED_COUNT])}
+    return user_input
 
 
 def _command_options(commands: list[dict[str, Any]]) -> list[SelectOptionDict]:
@@ -317,6 +341,7 @@ class LearnedRemoteConfigFlow(
         self._commands = []
         self._hidden_roles = []
         self._device_type = None
+        self._extra_data: dict[str, Any] = {}
 
     @staticmethod
     @callback
@@ -380,6 +405,11 @@ class LearnedRemoteConfigFlow(
             self._remote_name = user_input[CONF_NAME]
             self._emitter = user_input[CONF_EMITTER]
             self._receiver = user_input[CONF_RECEIVER]
+            self._extra_data = {
+                k: v
+                for k, v in _clean_settings(user_input).items()
+                if k == CONF_SPEED_COUNT
+            }
             if self._device_type == DEVICE_GENERIC:
                 return self._async_show_name_form()
             return await self.async_step_buttons()
@@ -393,11 +423,13 @@ class LearnedRemoteConfigFlow(
             suggested[CONF_EMITTER] = emitters[0]
         if len(receivers) == 1:
             suggested[CONF_RECEIVER] = receivers[0]
+        suggested[CONF_SPEED_COUNT] = DEFAULT_SPEED_COUNT
         schema = probatio.Schema(
             {
                 probatio.Required(CONF_NAME): TextSelector(),
                 probatio.Required(CONF_EMITTER): _emitter_selector(self.hass),
                 probatio.Required(CONF_RECEIVER): _receiver_selector(self.hass),
+                **_device_fields(self._device_type),
             }
         )
         return self.async_show_form(
@@ -414,6 +446,7 @@ class LearnedRemoteConfigFlow(
                 CONF_EMITTER: self._emitter,
                 CONF_RECEIVER: self._receiver,
                 CONF_DEVICE_TYPE: self._device_type,
+                **self._extra_data,
             },
             options={
                 CONF_COMMANDS: self._commands,
@@ -549,7 +582,7 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
     ) -> ConfigFlowResult:
         """Change the emitter or the receiver."""
         if user_input is not None:
-            data = {**self.config_entry.data, **user_input}
+            data = {**self.config_entry.data, **_clean_settings(user_input)}
             # Listening used to be a setting here; the event entity is now
             # always created and can be disabled like any other entity
             data.pop("listen", None)
@@ -560,12 +593,14 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
             {
                 probatio.Required(CONF_EMITTER): _emitter_selector(self.hass),
                 probatio.Required(CONF_RECEIVER): _receiver_selector(self.hass),
+                **_device_fields(self._device_type),
             }
         )
         return self.async_show_form(
             step_id="settings",
             data_schema=self.add_suggested_values_to_schema(
-                schema, dict(self.config_entry.data)
+                schema,
+                {CONF_SPEED_COUNT: DEFAULT_SPEED_COUNT, **self.config_entry.data},
             ),
         )
 

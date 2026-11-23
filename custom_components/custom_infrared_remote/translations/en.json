@@ -48,12 +48,14 @@
         "data": {
           "name": "Name",
           "emitter_entity_id": "Infrared emitter",
-          "receiver_entity_id": "Infrared receiver"
+          "receiver_entity_id": "Infrared receiver",
+          "speed_count": "Number of speeds"
         },
         "data_description": {
           "name": "For example, Living room TV.",
           "emitter_entity_id": "Sends the commands to the device.",
-          "receiver_entity_id": "Hears your remote while you teach it buttons."
+          "receiver_entity_id": "Hears your remote while you teach it buttons, and afterwards keeps Home Assistant up to date when you use the remote.",
+          "speed_count": "How many speeds the fan has. With Speed up and Speed down learned, the fan gets a speed slider."
         }
       },
       "buttons": {
@@ -194,7 +196,7 @@
           "relearn": "Learn a button again",
           "rename": "Rename buttons",
           "delete": "Delete buttons",
-          "settings": "Change emitter or receiver"
+          "settings": "Change settings"
         }
       },
       "command_name": {
@@ -236,10 +238,14 @@
         }
       },
       "settings": {
-        "title": "Emitter and receiver",
+        "title": "Settings",
         "data": {
           "emitter_entity_id": "Infrared emitter",
-          "receiver_entity_id": "Infrared receiver"
+          "receiver_entity_id": "Infrared receiver",
+          "speed_count": "Number of speeds"
+        },
+        "data_description": {
+          "speed_count": "How many speeds the fan has. With Speed up and Speed down learned, the fan gets a speed slider."
         }
       },
       "buttons": {

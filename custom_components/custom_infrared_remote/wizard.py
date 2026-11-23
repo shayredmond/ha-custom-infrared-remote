@@ -340,16 +340,13 @@ class GuidedCaptureMixin:
         options += ["ready_custom", "ready_finish"]
 
         learned = self._learned_roles()
+        mapped = self._template.mapped
+        if self._template.mapped_together and self._template.mapped_together <= learned:
+            mapped = mapped | self._template.mapped_together
         features = [
-            r.name
-            for r in self._template.roles
-            if r.key in learned and r.key in self._template.mapped
+            r.name for r in self._template.roles if r.key in learned and r.key in mapped
         ]
-        extras = [
-            c[CMD_NAME]
-            for c in self._commands
-            if c.get(CMD_ROLE) not in self._template.mapped
-        ]
+        extras = [c[CMD_NAME] for c in self._commands if c.get(CMD_ROLE) not in mapped]
         note, self._ready_note = self._ready_note, ""
         return self.async_show_menu(
             step_id="ready",

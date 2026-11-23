@@ -38,7 +38,7 @@ def clock():
     clock = Clock()
     with (
         patch("custom_components.custom_infrared_remote.signal.now", clock),
-        patch("custom_components.custom_infrared_remote.event.now", clock),
+        patch("custom_components.custom_infrared_remote.presses.now", clock),
     ):
         yield clock
 

@@ -41,3 +41,10 @@ CAPTURE_TIMEOUT: Final = 20
 
 # Suggested buttons the user chose not to learn ("don't learn it")
 CONF_HIDDEN_ROLES: Final = "hidden_roles"
+
+# Fans: how many speed steps the speed up and speed down buttons go through
+CONF_SPEED_COUNT: Final = "speed_count"
+DEFAULT_SPEED_COUNT: Final = 3
+
+# Pause between repeated presses, so the device sees each one
+STEP_DELAY: Final = 0.3

@@ -1,6 +1,7 @@
 """Test the guided wizard and the device types it creates."""
 
 import asyncio
+from unittest.mock import patch
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
@@ -216,7 +217,7 @@ async def test_tv_wizard(
     state = hass.states.get("media_player.living_room_tv")
     assert state.attributes["device_class"] == "tv"
     assert state.attributes["source_list"] == ["HDMI 1"]
-    assert state.attributes["assumed_state"] is True
+    assert "assumed_state" not in state.attributes
 
 
 async def test_relearn_from_ready(
@@ -258,6 +259,7 @@ def _entry(
     device_type: str,
     commands: dict[str, list[int]],
     hidden: list[str] | None = None,
+    extra: dict[str, int] | None = None,
 ) -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
@@ -267,6 +269,7 @@ def _entry(
             CONF_EMITTER: EMITTER_ENTITY_ID,
             CONF_RECEIVER: RECEIVER_ENTITY_ID,
             CONF_DEVICE_TYPE: device_type,
+            **(extra or {}),
         },
         options={
             "commands": [
@@ -398,6 +401,148 @@ async def test_fan(
     assert state.attributes["oscillating"] is True
 
 
+class Clock:
+    """Controllable monotonic clock, so echo and repeat windows can pass."""
+
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+@pytest.fixture
+def clock():
+    """Patch the integration's clock and the pause between speed steps."""
+    clock = Clock()
+    with (
+        patch("custom_components.custom_infrared_remote.signal.now", clock),
+        patch("custom_components.custom_infrared_remote.presses.now", clock),
+        patch("custom_components.custom_infrared_remote.fan.STEP_DELAY", 0),
+    ):
+        yield clock
+
+
+async def _hear(hass, receiver, clock, timings) -> None:
+    clock.now += 1
+    receiver._handle_received_signal(InfraredReceivedSignal(timings))
+    await hass.async_block_till_done()
+
+
+SPEED_UP = nec(0x51)
+SPEED_DOWN = nec(0x52)
+
+
+async def test_fan_speed_slider(
+    hass: HomeAssistant,
+    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
+    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
+    clock: Clock,
+) -> None:
+    """Speed up and down become a speed slider that presses them in turn."""
+    emitter = mock_infrared_emitter_entity
+    entry = _entry(
+        "fan",
+        {"power": POWER, "speed_up": SPEED_UP, "speed_down": SPEED_DOWN},
+        extra={"speed_count": 4},
+    )
+    await _setup(hass, entry)
+    state = hass.states.get("fan.thing")
+    assert state.attributes["percentage_step"] == 25
+    assert "assumed_state" not in state.attributes
+    # Both speed buttons now live in the slider
+    assert hass.states.get("button.thing_speed_up") is None
+
+    # Speed unknown: turn on, go down to the slowest, then up to 75 %
+    await hass.services.async_call(
+        "fan",
+        "set_percentage",
+        {ATTR_ENTITY_ID: "fan.thing", "percentage": 75},
+        blocking=True,
+    )
+    assert _sent(emitter) == [POWER] + [SPEED_DOWN] * 3 + [SPEED_UP] * 2
+    state = hass.states.get("fan.thing")
+    assert (state.state, state.attributes["percentage"]) == ("on", 75)
+
+    await hass.services.async_call(
+        "fan",
+        "set_percentage",
+        {ATTR_ENTITY_ID: "fan.thing", "percentage": 25},
+        blocking=True,
+    )
+    assert _sent(emitter) == [SPEED_DOWN] * 2
+    assert hass.states.get("fan.thing").attributes["percentage"] == 25
+
+
+async def test_fan_follows_original_remote(
+    hass: HomeAssistant,
+    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
+    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
+    clock: Clock,
+) -> None:
+    """Presses on the original remote update the fan."""
+    receiver = mock_infrared_receiver_entity
+    entry = _entry(
+        "fan",
+        {
+            "power": POWER,
+            "speed_up": SPEED_UP,
+            "speed_down": SPEED_DOWN,
+            "oscillate": nec(0x50),
+        },
+        extra={"speed_count": 4},
+    )
+    await _setup(hass, entry)
+    await hass.services.async_call(
+        "fan",
+        "set_percentage",
+        {ATTR_ENTITY_ID: "fan.thing", "percentage": 50},
+        blocking=True,
+    )
+
+    # Our own transmission heard straight back is not a press
+    receiver._handle_received_signal(InfraredReceivedSignal(SPEED_UP))
+    await hass.async_block_till_done()
+    assert hass.states.get("fan.thing").attributes["percentage"] == 50
+
+    await _hear(hass, receiver, clock, SPEED_UP)
+    assert hass.states.get("fan.thing").attributes["percentage"] == 75
+    await _hear(hass, receiver, clock, nec(0x50))
+    assert hass.states.get("fan.thing").attributes["oscillating"] is True
+    await _hear(hass, receiver, clock, POWER)
+    state = hass.states.get("fan.thing")
+    assert state.state == "off"
+    assert state.attributes["percentage"] == 75
+    # The event entity still fires for the same press
+    assert hass.states.get("event.thing_remote_button").attributes["event_type"] == (
+        "Power"
+    )
+
+    # Turning on from Home Assistant now sends Power, as the fan is off
+    await hass.services.async_call(
+        "fan", "turn_on", {ATTR_ENTITY_ID: "fan.thing"}, blocking=True
+    )
+    assert _sent(mock_infrared_emitter_entity)[-1] == POWER
+    assert hass.states.get("fan.thing").state == "on"
+
+
+async def test_media_player_follows_original_remote(
+    hass: HomeAssistant,
+    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
+    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
+    clock: Clock,
+) -> None:
+    """Power and inputs pressed on the original remote update the TV."""
+    receiver = mock_infrared_receiver_entity
+    await _setup(hass, _entry("tv", {"power": POWER, "source_hdmi_1": HDMI_1}))
+    await _hear(hass, receiver, clock, POWER)
+    assert hass.states.get("media_player.thing").state == "on"
+    await _hear(hass, receiver, clock, HDMI_1)
+    assert hass.states.get("media_player.thing").attributes["source"] == "HDMI 1"
+    await _hear(hass, receiver, clock, POWER)
+    assert hass.states.get("media_player.thing").state == "off"
+
+
 async def test_cover(
     hass: HomeAssistant,
     mock_infrared_emitter_entity: MockInfraredEmitterEntity,
@@ -495,3 +640,51 @@ async def test_event_quiet_while_learning(
     await _settle(hass)
     state = hass.states.get("event.thing_remote_button")
     assert state.attributes["event_type"] == "Power"
+
+
+async def test_fan_asks_for_speeds(
+    hass: HomeAssistant,
+    mock_infrared_emitter_entity: MockInfraredEmitterEntity,
+    mock_infrared_receiver_entity: MockInfraredReceiverEntity,
+) -> None:
+    """A fan asks how many speeds it has; it can be changed in settings."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    flow_id = result["flow_id"]
+    result = await hass.config_entries.flow.async_configure(
+        flow_id, {"next_step_id": "fan"}
+    )
+    keys = {str(k): k for k in result["data_schema"].schema}
+    assert keys["speed_count"].description == {"suggested_value": 3}
+    result = await hass.config_entries.flow.async_configure(
+        flow_id,
+        {
+            CONF_NAME: "Dyson",
+            CONF_EMITTER: EMITTER_ENTITY_ID,
+            CONF_RECEIVER: RECEIVER_ENTITY_ID,
+            "speed_count": 10.0,
+        },
+    )
+    groups = {r.group: {"buttons": []} for r in get_template("fan").roles}
+    result = await hass.config_entries.flow.async_configure(flow_id, groups)
+    assert result["step_id"] == "ready"
+    result = await hass.config_entries.flow.async_configure(
+        flow_id, {"next_step_id": "ready_finish"}
+    )
+    entry = result["result"]
+    assert entry.data["speed_count"] == 10
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_EMITTER: EMITTER_ENTITY_ID,
+            CONF_RECEIVER: RECEIVER_ENTITY_ID,
+            "speed_count": 4,
+        },
+    )
+    assert entry.data["speed_count"] == 4

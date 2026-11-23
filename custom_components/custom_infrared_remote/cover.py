@@ -30,6 +30,8 @@ class LearnedCover(LearnedDeviceEntity, CoverEntity):
     """
 
     _attr_is_closed = None
+    # Blinds can stop anywhere, so where they are is never known
+    _attr_assumed_state = True
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the cover."""
