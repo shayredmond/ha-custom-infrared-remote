@@ -31,6 +31,8 @@ class Role:
     name: str
     # Ticked by default in the button list
     default: bool = False
+    # Section of the button list it appears in
+    group: str = "controls"
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,17 +53,24 @@ class DeviceTemplate:
         return next((r for r in self.roles if r.key == key), None)
 
 
-POWER = (
+def _grouped(group: str, *roles: Role) -> tuple[Role, ...]:
+    return tuple(Role(r.key, r.name, r.default, group) for r in roles)
+
+
+POWER = _grouped(
+    "power",
     Role("power", "Power", default=True),
     Role("power_on", "Power on"),
     Role("power_off", "Power off"),
 )
-VOLUME = (
+VOLUME = _grouped(
+    "volume",
     Role("volume_up", "Volume up", default=True),
     Role("volume_down", "Volume down", default=True),
     Role("mute", "Mute", default=True),
 )
-PLAYBACK = (
+PLAYBACK = _grouped(
+    "playback",
     Role("play_pause", "Play/pause"),
     Role("play", "Play"),
     Role("pause", "Pause"),
@@ -69,14 +78,16 @@ PLAYBACK = (
     Role("next", "Next"),
     Role("previous", "Previous"),
 )
-INPUTS = (
+INPUTS = _grouped(
+    "inputs",
     Role("input", "Input"),
     Role("source_hdmi_1", "HDMI 1"),
     Role("source_hdmi_2", "HDMI 2"),
     Role("source_hdmi_3", "HDMI 3"),
     Role("source_hdmi_4", "HDMI 4"),
 )
-NAVIGATION = (
+NAVIGATION = _grouped(
+    "navigation",
     Role("home", "Home"),
     Role("back", "Back"),
     Role("up", "Up"),
@@ -85,7 +96,8 @@ NAVIGATION = (
     Role("right", "Right"),
     Role("ok", "OK"),
 )
-CHANNELS = (
+CHANNELS = _grouped(
+    "channels",
     Role("channel_up", "Channel up"),
     Role("channel_down", "Channel down"),
 )
@@ -114,7 +126,7 @@ MEDIA_MAPPED = frozenset(
 
 def _with_defaults(roles: tuple[Role, ...], defaults: set[str]) -> tuple[Role, ...]:
     """Return roles with their default ticks replaced."""
-    return tuple(Role(r.key, r.name, r.key in defaults) for r in roles)
+    return tuple(Role(r.key, r.name, r.key in defaults, r.group) for r in roles)
 
 
 TEMPLATES: dict[str, DeviceTemplate] = {

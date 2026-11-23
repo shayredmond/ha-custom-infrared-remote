@@ -39,7 +39,7 @@ async def _start_generic(hass):
     )
     assert result["step_id"] == "user"
     return await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"device_type": "generic"}
+        result["flow_id"], {"next_step_id": "generic"}
     )
 
 

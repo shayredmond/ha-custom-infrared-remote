@@ -57,7 +57,7 @@ async def _start_tv(hass: HomeAssistant, buttons: list[str]):
     )
     flow_id = result["flow_id"]
     result = await hass.config_entries.flow.async_configure(
-        flow_id, {CONF_DEVICE_TYPE: "tv"}
+        flow_id, {"next_step_id": "tv"}
     )
     assert result["step_id"] == "details"
     schema_keys = {str(k): k for k in result["data_schema"].schema}
@@ -72,12 +72,36 @@ async def _start_tv(hass: HomeAssistant, buttons: list[str]):
         },
     )
     assert result["step_id"] == "buttons"
-    key = next(k for k in result["data_schema"].schema if str(k) == "buttons")
-    assert key.default() == ["power", "volume_up", "volume_down", "mute"]
-
-    result = await hass.config_entries.flow.async_configure(
-        flow_id, {"buttons": buttons}
+    assert (
+        "/api/custom_infrared_remote/remote/tv.svg?"
+        in (result["description_placeholders"]["image"])
     )
+    sections = result["data_schema"].schema
+    assert [str(k) for k in sections] == [
+        "power",
+        "volume",
+        "channels",
+        "inputs",
+        "playback",
+        "navigation",
+    ]
+    defaults = {
+        str(k): next(iter(v.schema.schema)).default() for k, v in sections.items()
+    }
+    assert defaults["power"] == ["power"]
+    assert defaults["volume"] == ["volume_up", "volume_down", "mute"]
+    assert defaults["navigation"] == []
+    collapsed = {str(k): v.options["collapsed"] for k, v in sections.items()}
+    assert collapsed["volume"] is False
+    assert collapsed["navigation"] is True
+
+    template = get_template("tv")
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for key in buttons:
+        grouped.setdefault(template.role(key).group, {"buttons": []})["buttons"].append(
+            key
+        )
+    result = await hass.config_entries.flow.async_configure(flow_id, grouped)
     return flow_id, result
 
 
@@ -116,10 +140,9 @@ async def test_tv_wizard(
     result = await _press(hass, receiver, flow_id, POWER)
     assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "capture_duplicate"
-    assert result["description_placeholders"] == {
-        "name": "Volume down",
-        "duplicate": "Power",
-    }
+    placeholders = result["description_placeholders"]
+    assert (placeholders["name"], placeholders["duplicate"]) == ("Volume down", "Power")
+    assert "current=volume_down&waiting=0&done=power,volume_up" in placeholders["image"]
     result = await hass.config_entries.flow.async_configure(
         flow_id, {"next_step_id": "capture_retry"}
     )
@@ -404,9 +427,48 @@ async def test_options_learn_more_suggests_missing(
         result["flow_id"], {"next_step_id": "learn_more"}
     )
     assert result["step_id"] == "buttons"
-    key = next(k for k in result["data_schema"].schema if str(k) == "buttons")
-    values = [o["value"] for o in result["data_schema"].schema[key].config["options"]]
-    assert "power" not in values
-    assert "volume_up" in values
+    sections = {str(k): v for k, v in result["data_schema"].schema.items()}
+    power_key, power_selector = next(iter(sections["power"].schema.schema.items()))
+    values = [o["value"] for o in power_selector.config["options"]]
+    assert values == ["power_on", "power_off"]
     # Nothing ticked by default once the device has buttons
-    assert key.default() == []
+    assert power_key.default() == []
+
+
+def test_remote_image() -> None:
+    """The drawn remote highlights the current button and ticks learned ones."""
+    from custom_components.custom_infrared_remote.illustrations import render_remote
+
+    svg = render_remote(
+        "tv",
+        current="volume_up",
+        done=frozenset({"power"}),
+        queued=frozenset({"power", "volume_up"}),
+        waiting=True,
+    )
+    assert svg.startswith("<svg")
+    assert svg.count("<animate") == 4  # pulse on the button plus three beams
+    assert "#2e9d4f" in svg  # Power learned
+    assert render_remote("tv", current="power").count("<animate") == 1
+    assert render_remote("generic") is None
+    assert render_remote("../etc") is None
+
+
+async def test_remote_image_view(hass: HomeAssistant, hass_client_no_auth) -> None:
+    """The image is served without authentication, and only for known types."""
+    from homeassistant.setup import async_setup_component
+
+    from custom_components.custom_infrared_remote.illustrations import (
+        async_register_view,
+    )
+
+    assert await async_setup_component(hass, "http", {})
+    async_register_view(hass)
+    client = await hass_client_no_auth()
+    resp = await client.get(
+        "/api/custom_infrared_remote/remote/fan.svg?current=power&done=&queued=power"
+    )
+    assert resp.status == 200
+    assert resp.content_type == "image/svg+xml"
+    resp = await client.get("/api/custom_infrared_remote/remote/generic.svg")
+    assert resp.status == 404

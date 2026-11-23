@@ -50,6 +50,7 @@ from .const import (
     CONF_RECEIVER,
     DOMAIN,
 )
+from .illustrations import async_register_view
 from .signal import (
     LearnedCommand,
     LearnedSignal,
@@ -57,7 +58,17 @@ from .signal import (
     async_mark_sent,
     find_duplicate,
 )
-from .templates import DEVICE_GENERIC, DEVICE_TV, TEMPLATES, get_template
+from .templates import (
+    DEVICE_BLINDS,
+    DEVICE_FAN,
+    DEVICE_GENERIC,
+    DEVICE_PROJECTOR,
+    DEVICE_SCREEN,
+    DEVICE_SPEAKER,
+    DEVICE_TV,
+    TEMPLATES,
+    get_template,
+)
 from .wizard import GuidedCaptureMixin
 
 CONF_COMMAND = "command"
@@ -324,28 +335,40 @@ class LearnedRemoteConfigFlow(
             return self.async_abort(reason="no_emitters")
         if not async_get_receivers(self.hass):
             return self.async_abort(reason="no_receivers")
+        async_register_view(self.hass)
+        return self.async_show_menu(step_id="user", menu_options=list(TEMPLATES))
 
-        if user_input is not None:
-            self._device_type = user_input[CONF_DEVICE_TYPE]
-            return await self.async_step_details()
+    async def _async_pick_type(self, device_type: str) -> ConfigFlowResult:
+        self._device_type = device_type
+        return await self.async_step_details()
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=probatio.Schema(
-                {
-                    probatio.Required(CONF_DEVICE_TYPE, default=DEVICE_TV): (
-                        SelectSelector(
-                            SelectSelectorConfig(
-                                options=list(TEMPLATES),
-                                mode=SelectSelectorMode.LIST,
-                                translation_key=CONF_DEVICE_TYPE,
-                            )
-                        )
-                    )
-                }
-            ),
-            last_step=False,
-        )
+    async def async_step_tv(self, user_input: Any = None) -> ConfigFlowResult:
+        """TV."""
+        return await self._async_pick_type(DEVICE_TV)
+
+    async def async_step_projector(self, user_input: Any = None) -> ConfigFlowResult:
+        """Projector."""
+        return await self._async_pick_type(DEVICE_PROJECTOR)
+
+    async def async_step_speaker(self, user_input: Any = None) -> ConfigFlowResult:
+        """Speakers or AV receiver."""
+        return await self._async_pick_type(DEVICE_SPEAKER)
+
+    async def async_step_fan(self, user_input: Any = None) -> ConfigFlowResult:
+        """Fan."""
+        return await self._async_pick_type(DEVICE_FAN)
+
+    async def async_step_blinds(self, user_input: Any = None) -> ConfigFlowResult:
+        """Blinds or curtains."""
+        return await self._async_pick_type(DEVICE_BLINDS)
+
+    async def async_step_screen(self, user_input: Any = None) -> ConfigFlowResult:
+        """Projector screen."""
+        return await self._async_pick_type(DEVICE_SCREEN)
+
+    async def async_step_generic(self, user_input: Any = None) -> ConfigFlowResult:
+        """Something else: a list of buttons."""
+        return await self._async_pick_type(DEVICE_GENERIC)
 
     async def async_step_details(
         self, user_input: dict[str, Any] | None = None
@@ -407,6 +430,7 @@ class LearnedRemoteOptionsFlow(GuidedCaptureMixin, LearnLoopMixin, OptionsFlow):
         self._receiver = entry.data[CONF_RECEIVER]
         self._device_type = entry.data.get(CONF_DEVICE_TYPE)
         self._commands = list(entry.options.get(CONF_COMMANDS, []))
+        async_register_view(self.hass)
 
         options = ["learn_more"]
         if self._commands:

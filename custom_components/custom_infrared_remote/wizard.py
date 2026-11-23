@@ -13,7 +13,7 @@ from uuid import uuid4
 import probatio
 from homeassistant.components.infrared import async_send_command
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     SelectOptionDict,
@@ -30,6 +30,7 @@ from .const import (
     CMD_ROLE,
     CMD_TIMINGS,
 )
+from .illustrations import async_register_view, image_url
 from .signal import (
     LearnedCommand,
     LearnedSignal,
@@ -87,42 +88,90 @@ class GuidedCaptureMixin:
     async def async_step_buttons(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Tick the buttons your remote has."""
+        """Tick the buttons your remote has, grouped into sections."""
+        async_register_view(self.hass)
         missing = self._missing_roles()
         if user_input is not None:
-            chosen = set(user_input.get(CONF_BUTTONS, []))
+            chosen = {
+                key
+                for group in user_input.values()
+                if isinstance(group, dict)
+                for key in group.get(CONF_BUTTONS, [])
+            }
             return await self._async_start_capture([k for k in missing if k in chosen])
 
         template = self._template
         first_time = not self._learned_roles()
-        options = [
-            SelectOptionDict(value=key, label=template.role(key).name)  # type: ignore[union-attr]
-            for key in missing
-        ]
-        defaults = [
-            key
-            for key in missing
-            if first_time and template.role(key).default  # type: ignore[union-attr]
-        ]
+        groups: dict[str, list[str]] = {}
+        for key in missing:
+            groups.setdefault(template.role(key).group, []).append(key)  # type: ignore[union-attr]
+
+        schema: dict[Any, Any] = {}
+        for group, keys in groups.items():
+            defaults = [
+                k
+                for k in keys
+                if first_time and template.role(k).default  # type: ignore[union-attr]
+            ]
+            schema[probatio.Optional(group, default={})] = section(
+                probatio.Schema(
+                    {
+                        probatio.Optional(CONF_BUTTONS, default=defaults): (
+                            SelectSelector(
+                                SelectSelectorConfig(
+                                    options=[
+                                        SelectOptionDict(
+                                            value=k,
+                                            label=template.role(k).name,  # type: ignore[union-attr]
+                                        )
+                                        for k in keys
+                                    ],
+                                    multiple=True,
+                                    mode=SelectSelectorMode.LIST,
+                                )
+                            )
+                        )
+                    }
+                ),
+                {"collapsed": not defaults and len(groups) > 1},
+            )
         return self.async_show_form(
             step_id="buttons",
-            data_schema=probatio.Schema(
-                {
-                    probatio.Optional(CONF_BUTTONS, default=defaults): SelectSelector(
-                        SelectSelectorConfig(
-                            options=options,
-                            multiple=True,
-                            mode=SelectSelectorMode.LIST,
-                        )
-                    )
-                }
-            ),
+            data_schema=probatio.Schema(schema),
             description_placeholders={
                 "remote": self._remote_name,
                 "timeout": str(CAPTURE_TIMEOUT),
+                "image": self._image(queued=missing),
             },
             last_step=False,
         )
+
+    def _image(
+        self,
+        current: str | None = None,
+        queued: list[str] | None = None,
+        skipped: set[str] | None = None,
+        waiting: bool = False,
+    ) -> str:
+        """Return a markdown image of the remote, or nothing for generic."""
+        if self._template.platform is None:
+            return ""
+        url = image_url(
+            self._template.key,
+            current,
+            self._learned_roles(),
+            skipped,
+            queued,
+            waiting,
+        )
+        return f"![Remote]({url})"
+
+    def _skipped(self) -> set[str]:
+        return {
+            key
+            for index, key in enumerate(self._queue)
+            if index < self._queue_pos and key not in self._queue_done
+        }
 
     # Capture, one button after another
 
@@ -172,6 +221,12 @@ class GuidedCaptureMixin:
                     "total": str(len(self._queue)),
                     "checklist": self._checklist(),
                     "timeout": str(CAPTURE_TIMEOUT),
+                    "image": self._image(
+                        role.key,  # type: ignore[union-attr]
+                        self._queue,
+                        self._skipped(),
+                        waiting=True,
+                    ),
                 },
             )
 
@@ -223,6 +278,9 @@ class GuidedCaptureMixin:
             description_placeholders={
                 "name": self._current_name(),
                 "timeout": str(CAPTURE_TIMEOUT),
+                "image": self._image(
+                    self._current_role_key(), self._queue, self._skipped()
+                ),
             },
         )
 
@@ -237,6 +295,9 @@ class GuidedCaptureMixin:
             description_placeholders={
                 "name": self._current_name(),
                 "duplicate": self._duplicate_of(self._captured) or "",
+                "image": self._image(
+                    self._current_role_key(), self._queue, self._skipped()
+                ),
             },
         )
 
@@ -329,6 +390,7 @@ class GuidedCaptureMixin:
                 "controls": ", ".join(features) if features else "none",
                 "buttons": ", ".join(extras) if extras else "none",
                 "note": note,
+                "image": self._image(),
             },
         )
 
